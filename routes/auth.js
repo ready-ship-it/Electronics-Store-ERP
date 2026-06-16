@@ -5,7 +5,9 @@ const db = require('../utils/database');
 
 // Login page
 router.get('/login', (req, res) => {
+    console.log('GET /login - sessionID:', req.sessionID, 'userId:', req.session?.userId);
     if (req.session && req.session.userId) {
+        console.log('Already logged in, redirecting to dashboard');
         return res.redirect('/');
     }
     res.render('auth/login', { title: 'Login', layout: false });
@@ -14,26 +16,23 @@ router.get('/login', (req, res) => {
 // Login process
 router.post('/login', async (req, res) => {
     const { username, password } = req.body;
+    console.log('POST /login - attempt:', username, 'sessionID:', req.sessionID);
 
     try {
-        console.log('Login attempt:', username);
-
         const [users] = await db.execute(
             'SELECT * FROM users WHERE username = ? AND is_active = TRUE',
             [username]
         );
 
         if (users.length === 0) {
-            console.log('User not found or inactive:', username);
+            console.log('User not found:', username);
             req.flash('error', 'Invalid username or password');
             return res.redirect('/auth/login');
         }
 
         const user = users[0];
-        console.log('User found:', user.username, 'Role:', user.role);
-
         const isMatch = await bcrypt.compare(password, user.password);
-        console.log('Password match:', isMatch);
+        console.log('Password match for', username, ':', isMatch);
 
         if (!isMatch) {
             req.flash('error', 'Invalid username or password');
@@ -50,18 +49,20 @@ router.post('/login', async (req, res) => {
             role: user.role
         };
 
-        // Save session explicitly
+        // Explicitly save session
         req.session.save((err) => {
             if (err) {
-                console.error('Session save error:', err);
+                console.error('Session save ERROR:', err);
                 req.flash('error', 'Login error. Please try again.');
                 return res.redirect('/auth/login');
             }
 
-            console.log('Login successful for:', user.username);
-            console.log('Session ID:', req.sessionID);
+            console.log('Session saved successfully. userId:', req.session.userId);
+            console.log('Cookie settings:', req.session.cookie);
+
+            // Force redirect with 302
             req.flash('success', `Welcome back, ${user.full_name}!`);
-            res.redirect('/');
+            return res.redirect('/');
         });
 
     } catch (error) {
