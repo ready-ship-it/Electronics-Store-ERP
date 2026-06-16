@@ -12,11 +12,16 @@ async function setUser(req, res, next) {
                 req.user = users[0];
                 req.session.user = users[0];
             } else {
+                // User not found or inactive - clear session
                 req.session.destroy();
+                req.user = null;
             }
         } catch (error) {
             console.error('Auth middleware error:', error);
+            req.user = null;
         }
+    } else {
+        req.user = null;
     }
     next();
 }

@@ -1,5 +1,6 @@
 const express = require('express');
 const session = require('express-session');
+const MySQLStore = require('express-mysql-session')(session);
 const flash = require('connect-flash');
 const path = require('path');
 const dotenv = require('dotenv');
@@ -30,6 +31,26 @@ const { setUser, requireAuth, requireRole } = require('./middleware/auth');
 // Import backup service
 const backupService = require('./utils/backup');
 
+// Session store configuration (MySQL)
+const sessionStoreOptions = {
+    host: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT || 3306,
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'electronics_store',
+    createDatabaseTable: true,
+    schema: {
+        tableName: 'sessions',
+        columnNames: {
+            session_id: 'session_id',
+            expires: 'expires',
+            data: 'data'
+        }
+    }
+};
+
+const sessionStore = new MySQLStore(sessionStoreOptions);
+
 // View engine setup
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -40,14 +61,18 @@ app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride('_method'));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Session configuration
+// Session configuration with MySQL store
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'electronics_store_secret',
+    key: 'electronics_store_session',
+    secret: process.env.SESSION_SECRET || 'electronics_store_secret_2024_change_this',
+    store: sessionStore,
     resave: false,
     saveUninitialized: false,
     cookie: {
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        sameSite: 'lax'
     }
 }));
 
@@ -86,7 +111,7 @@ app.use((req, res) => {
 
 // Error handler
 app.use((err, req, res, next) => {
-    console.error(err.stack);
+    console.error('ERROR:', err.stack);
     res.status(500).render('error', { 
         title: 'Error', 
         message: process.env.NODE_ENV === 'production' ? 'Something went wrong!' : err.message 
@@ -144,12 +169,14 @@ app.listen(PORT, async () => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
     console.log('\n🛑 SIGTERM received, shutting down gracefully...');
+    sessionStore.close();
     await db.end();
     process.exit(0);
 });
 
 process.on('SIGINT', async () => {
     console.log('\n🛑 SIGINT received, shutting down gracefully...');
+    sessionStore.close();
     await db.end();
     process.exit(0);
 });

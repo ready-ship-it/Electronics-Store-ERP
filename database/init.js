@@ -156,16 +156,20 @@ async function initializeDatabase() {
             }
         }
 
-        // Insert default master admin
-        const hashedPassword = await bcrypt.hash('admin123', 10);
-        try {
+        // Check if master admin exists, if not create it
+        const [existingUsers] = await db.execute('SELECT id FROM users WHERE username = ?', ['masteradmin']);
+
+        if (existingUsers.length === 0) {
+            console.log('Creating default master admin user...');
+            const hashedPassword = await bcrypt.hash('admin123', 10);
             await db.execute(
-                `INSERT IGNORE INTO users (username, email, password, full_name, role) 
-                 VALUES (?, ?, ?, ?, ?)`,
-                ['masteradmin', 'admin@electronicsstore.com', hashedPassword, 'Master Administrator', 'master_admin']
+                `INSERT INTO users (username, email, password, full_name, role, is_active) 
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                ['masteradmin', 'admin@electronicsstore.com', hashedPassword, 'Master Administrator', 'master_admin', true]
             );
-        } catch (e) {
-            // Ignore duplicate errors
+            console.log('✅ Default master admin created: masteradmin / admin123');
+        } else {
+            console.log('✅ Master admin already exists');
         }
 
         // Insert default settings
