@@ -1,0 +1,204 @@
+<%- include('partials/header') %>
+<%- include('partials/sidebar') %>
+
+<!-- Stats Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-2 col-md-4 col-6">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="fas fa-rupee-sign"></i></div>
+            <div class="stat-value">₹<%= (stats.todaySales?.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) %></div>
+            <div class="stat-label">Today's Sales</div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-6">
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="fas fa-calendar-month"></i></div>
+            <div class="stat-value">₹<%= (stats.monthSales?.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) %></div>
+            <div class="stat-label">This Month</div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-6">
+        <div class="stat-card">
+            <div class="stat-icon purple"><i class="fas fa-calendar"></i></div>
+            <div class="stat-value">₹<%= (stats.yearSales?.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) %></div>
+            <div class="stat-label">This Year</div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-6">
+        <div class="stat-card">
+            <div class="stat-icon cyan"><i class="fas fa-box"></i></div>
+            <div class="stat-value"><%= stats.totalProducts || 0 %></div>
+            <div class="stat-label">Total Products</div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-6">
+        <div class="stat-card">
+            <div class="stat-icon orange"><i class="fas fa-exclamation-triangle"></i></div>
+            <div class="stat-value"><%= stats.lowStock || 0 %></div>
+            <div class="stat-label">Low Stock Alert</div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-6">
+        <div class="stat-card">
+            <div class="stat-icon red"><i class="fas fa-users"></i></div>
+            <div class="stat-value"><%= stats.totalCustomers || 0 %></div>
+            <div class="stat-label">Customers</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Sales Chart -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-chart-bar me-2 text-primary"></i>Sales Trend (Last 7 Days)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="salesChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Low Stock Alert -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-exclamation-circle me-2 text-danger"></i>Low Stock Products</h5>
+                <a href="/products?stock=low" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr><th>Product</th><th>Stock</th><th>Min</th></tr>
+                        </thead>
+                        <tbody>
+                            <% lowStockProducts.forEach(product => { %>
+                            <tr>
+                                <td><a href="/products/detail/<%= product.id %>" class="text-decoration-none fw-medium"><%= product.name %></a></td>
+                                <td class="low-stock"><%= product.quantity %></td>
+                                <td><%= product.min_stock %></td>
+                            </tr>
+                            <% }) %>
+                            <% if (lowStockProducts.length === 0) { %>
+                            <tr><td colspan="3" class="text-center text-muted py-3">No low stock products</td></tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Sales -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-receipt me-2 text-primary"></i>Recent Sales</h5>
+                <a href="/sales" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Customer</th>
+                                <th>Amount</th>
+                                <th>Payment</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                                <th>By</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% recentSales.forEach(sale => { %>
+                            <tr>
+                                <td><span class="fw-medium text-primary"><%= sale.invoice_number %></span></td>
+                                <td><%= sale.customer_name %></td>
+                                <td class="fw-bold">₹<%= parseFloat(sale.total_amount).toLocaleString('en-IN', {minimumFractionDigits: 2}) %></td>
+                                <td><span class="badge bg-light text-dark border"><%= sale.payment_method.toUpperCase() %></span></td>
+                                <td><span class="status-badge status-<%= sale.payment_status %>"><%= sale.payment_status.toUpperCase() %></span></td>
+                                <td><%= new Date(sale.created_at).toLocaleDateString('en-IN') %></td>
+                                <td><%= sale.created_by_name || 'System' %></td>
+                                <td>
+                                    <a href="/sales/invoice/<%= sale.id %>" class="btn btn-sm btn-light"><i class="fas fa-eye"></i></a>
+                                </td>
+                            </tr>
+                            <% }) %>
+                            <% if (recentSales.length === 0) { %>
+                            <tr><td colspan="8" class="text-center text-muted py-4">No sales yet</td></tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const chartData = <%- JSON.stringify(chartData || []) %>;
+    const ctx = document.getElementById('salesChart').getContext('2d');
+
+    const labels = chartData.map(d => new Date(d.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric' }));
+    const revenue = chartData.map(d => d.revenue);
+    const invoices = chartData.map(d => d.sales);
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Revenue (₹)',
+                data: revenue,
+                backgroundColor: 'rgba(37, 99, 235, 0.8)',
+                borderColor: 'rgba(37, 99, 235, 1)',
+                borderWidth: 1,
+                borderRadius: 6,
+                yAxisID: 'y'
+            }, {
+                label: 'Invoices',
+                data: invoices,
+                type: 'line',
+                borderColor: 'rgba(245, 158, 11, 1)',
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                borderWidth: 2,
+                pointRadius: 4,
+                pointBackgroundColor: 'rgba(245, 158, 11, 1)',
+                yAxisID: 'y1',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { intersect: false, mode: 'index' },
+            plugins: {
+                legend: { position: 'top' }
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    ticks: {
+                        callback: function(value) {
+                            return '₹' + value.toLocaleString('en-IN');
+                        }
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    grid: { drawOnChartArea: false }
+                }
+            }
+        }
+    });
+</script>
+
+<%- include('partials/footer') %>

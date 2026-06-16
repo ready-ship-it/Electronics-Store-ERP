@@ -1,0 +1,179 @@
+<%- include('../partials/header') %>
+<%- include('../partials/sidebar') %>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-plus-circle me-2 text-primary"></i>New Sale</h5>
+            </div>
+            <div class="card-body">
+                <form id="saleForm" action="/sales/new" method="POST">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Invoice Number</label>
+                            <input type="text" name="invoice_number" class="form-control" value="<%= invoiceNumber %>" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Date</label>
+                            <input type="text" class="form-control" value="<%= new Date().toLocaleDateString('en-IN') %>" readonly>
+                        </div>
+                    </div>
+
+                    <h6 class="mb-3">Customer Details</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Customer Name *</label>
+                            <input type="text" name="customer_name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Phone</label>
+                            <input type="tel" name="customer_phone" class="form-control" placeholder="+91 98765 43210">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="customer_email" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Address</label>
+                            <textarea name="customer_address" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <h6 class="mb-3">Products</h6>
+                    <div id="productsContainer">
+                        <div class="product-row row g-2 mb-2 align-items-end">
+                            <div class="col-md-5">
+                                <label class="form-label">Product</label>
+                                <select class="form-select product-select" name="product_ids[]" required onchange="updatePrice(this)">
+                                    <option value="">Select Product</option>
+                                    <% products.forEach(p => { %>
+                                    <option value="<%= p.id %>" data-price="<%= p.selling_price %>" data-gst="<%= p.gst_rate %>" data-stock="<%= p.quantity %>"><%= p.name %> (Stock: <%= p.quantity %>)</option>
+                                    <% }) %>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Qty</label>
+                                <input type="number" class="form-control quantity" name="quantities[]" value="1" min="1" onchange="calculateRow(this)">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Price (₹)</label>
+                                <input type="number" class="form-control unit-price" name="unit_prices[]" step="0.01" min="0" readonly>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">GST %</label>
+                                <input type="number" class="form-control gst-rate" name="gst_rates[]" step="0.01" readonly>
+                            </div>
+                            <div class="col-md-1">
+                                <button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm mb-4" onclick="addRow()"><i class="fas fa-plus me-1"></i>Add Product</button>
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Payment Method</label>
+                            <select name="payment_method" class="form-select">
+                                <option value="cash">Cash</option>
+                                <option value="card">Card</option>
+                                <option value="upi">UPI</option>
+                                <option value="credit">Credit</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Payment Status</label>
+                            <select name="payment_status" class="form-select">
+                                <option value="paid">Paid</option>
+                                <option value="pending">Pending</option>
+                                <option value="partial">Partial</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Discount (₹)</label>
+                            <input type="number" name="discount" class="form-control" value="0" step="0.01" min="0" onchange="calculateTotal()">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Notes</label>
+                            <textarea name="notes" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="card mt-4 bg-light">
+                        <div class="card-body">
+                            <div class="row text-end">
+                                <div class="col-12 mb-2">
+                                    <span class="text-muted">Subtotal: </span>
+                                    <span class="fw-bold" id="subtotalDisplay">₹0.00</span>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <span class="text-muted">GST: </span>
+                                    <span class="fw-bold" id="gstDisplay">₹0.00</span>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <span class="text-muted">Discount: </span>
+                                    <span class="fw-bold text-danger" id="discountDisplay">₹0.00</span>
+                                </div>
+                                <div class="col-12">
+                                    <span class="text-muted fs-5">Grand Total: </span>
+                                    <span class="fw-bold fs-3 text-primary" id="totalDisplay">₹0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i>Create Sale</button>
+                        <a href="/sales" class="btn btn-light">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updatePrice(select) {
+    const row = select.closest('.product-row');
+    const option = select.selectedOptions[0];
+    const price = option.dataset.price || 0;
+    const gst = option.dataset.gst || 18;
+    row.querySelector('.unit-price').value = price;
+    row.querySelector('.gst-rate').value = gst;
+    calculateTotal();
+}
+function calculateTotal() {
+    let subtotal = 0, totalGst = 0;
+    document.querySelectorAll('.product-row').forEach(row => {
+        const qty = parseFloat(row.querySelector('.quantity').value) || 0;
+        const price = parseFloat(row.querySelector('.unit-price').value) || 0;
+        const gst = parseFloat(row.querySelector('.gst-rate').value) || 0;
+        subtotal += qty * price;
+        totalGst += (qty * price) * (gst / 100);
+    });
+    const discount = parseFloat(document.querySelector('[name="discount"]').value) || 0;
+    const total = subtotal + totalGst - discount;
+    document.getElementById('subtotalDisplay').textContent = '₹' + subtotal.toLocaleString('en-IN', {minimumFractionDigits: 2});
+    document.getElementById('gstDisplay').textContent = '₹' + totalGst.toLocaleString('en-IN', {minimumFractionDigits: 2});
+    document.getElementById('discountDisplay').textContent = '₹' + discount.toLocaleString('en-IN', {minimumFractionDigits: 2});
+    document.getElementById('totalDisplay').textContent = '₹' + total.toLocaleString('en-IN', {minimumFractionDigits: 2});
+}
+function addRow() {
+    const container = document.getElementById('productsContainer');
+    const newRow = container.children[0].cloneNode(true);
+    newRow.querySelector('.product-select').value = '';
+    newRow.querySelector('.unit-price').value = '';
+    newRow.querySelector('.gst-rate').value = '';
+    newRow.querySelector('.quantity').value = 1;
+    container.appendChild(newRow);
+}
+function removeRow(btn) {
+    if (document.querySelectorAll('.product-row').length > 1) {
+        btn.closest('.product-row').remove();
+        calculateTotal();
+    }
+}
+calculateTotal();
+</script>
+
+<%- include('../partials/footer') %>

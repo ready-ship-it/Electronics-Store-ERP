@@ -1,0 +1,59 @@
+<%- include('../partials/header') %>
+<%- include('../partials/sidebar') %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h5 class="mb-1">Backup Management</h5>
+        <p class="text-muted mb-0" style="font-size: 13px;">Automatic backups every 2 hours. Last 5 backups retained.</p>
+    </div>
+    <form action="/backups/create" method="POST">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-play-circle me-2"></i>Create Backup Now</button>
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table">
+                <thead><tr><th>Backup Name</th><th>Size</th><th>Created</th><th>Actions</th></tr></thead>
+                <tbody>
+                    <% backups.forEach(backup => { %>
+                    <tr>
+                        <td><i class="fas fa-file-archive text-warning me-2"></i><%= backup.name %></td>
+                        <td><%= backup.size %></td>
+                        <td><%= new Date(backup.created).toLocaleString('en-IN') %></td>
+                        <td>
+                            <a href="/backups/download/<%= backup.name %>" class="btn btn-sm btn-light"><i class="fas fa-download"></i></a>
+                            <form action="/backups/restore" method="POST" class="d-inline" onsubmit="return confirm('WARNING: This will replace all current data! Are you sure?');">
+                                <input type="hidden" name="backup_name" value="<%= backup.name %>">
+                                <button type="submit" class="btn btn-sm btn-light text-warning"><i class="fas fa-undo"></i></button>
+                            </form>
+                            <form action="/backups/delete/<%= backup.name %>?_method=DELETE" method="POST" class="d-inline" onsubmit="return confirm('Delete this backup?');">
+                                <button type="submit" class="btn btn-sm btn-light text-danger"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    <% }) %>
+                    <% if (backups.length === 0) { %>
+                    <tr><td colspan="4" class="text-center text-muted py-5">No backups yet. First backup will be created automatically.</td></tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header"><h5><i class="fas fa-info-circle me-2"></i>Backup Information</h5></div>
+    <div class="card-body">
+        <ul class="mb-0" style="font-size: 13px;">
+            <li>Automatic backup runs every <strong>2 hours</strong></li>
+            <li>Cleanup runs every <strong>1 hour</strong> keeping only last <strong>5 backups</strong></li>
+            <li>Backups include: database dump + product images</li>
+            <li>If FTP is configured, backups are uploaded automatically</li>
+            <li>Restore will <strong>replace all current data</strong> - use with caution!</li>
+        </ul>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,100 @@
+<%- include('../partials/header') %>
+<%- include('../partials/sidebar') %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h5 class="mb-1">Yearly Sales Report</h5>
+        <p class="text-muted mb-0" style="font-size: 13px;">Year <%= reportYear %></p>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="GET" class="d-flex gap-2">
+            <select name="year" class="form-select" style="width: auto;" onchange="this.form.submit()">
+                <% for(let y = new Date().getFullYear(); y >= 2020; y--) { %>
+                <option value="<%= y %>" <%= reportYear == y ? 'selected' : '' %>><%= y %></option>
+                <% } %>
+            </select>
+        </form>
+        <a href="/reports/yearly/pdf?year=<%= reportYear %>" class="btn btn-danger"><i class="fas fa-file-pdf me-2"></i>PDF</a>
+        <button onclick="printPage()" class="btn btn-primary"><i class="fas fa-print me-2"></i>Print</button>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="fas fa-receipt"></i></div>
+            <div class="stat-value"><%= summary.total_invoices || 0 %></div>
+            <div class="stat-label">Invoices</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="fas fa-rupee-sign"></i></div>
+            <div class="stat-value">₹<%= (summary.total_revenue || 0).toLocaleString('en-IN', {minimumFractionDigits: 2}) %></div>
+            <div class="stat-label">Revenue</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon orange"><i class="fas fa-percentage"></i></div>
+            <div class="stat-value">₹<%= (summary.total_gst || 0).toLocaleString('en-IN', {minimumFractionDigits: 2}) %></div>
+            <div class="stat-label">GST</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon red"><i class="fas fa-tag"></i></div>
+            <div class="stat-value">₹<%= (summary.total_discount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2}) %></div>
+            <div class="stat-label">Discounts</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header"><h5>Monthly Breakdown</h5></div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead><tr><th>Month</th><th>Invoices</th><th>Revenue</th></tr></thead>
+                        <tbody>
+                            <% const mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; %>
+                            <% monthlyBreakdown.forEach(m => { %>
+                            <tr>
+                                <td><%= mn[m.month - 1] %></td>
+                                <td><%= m.invoices %></td>
+                                <td class="fw-medium">₹<%= parseFloat(m.revenue).toLocaleString('en-IN', {minimumFractionDigits: 2}) %></td>
+                            </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header"><h5>All Sales</h5></div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead><tr><th>Invoice</th><th>Customer</th><th>Total</th><th>Date</th></tr></thead>
+                        <tbody>
+                            <% sales.slice(0, 50).forEach(sale => { %>
+                            <tr>
+                                <td><%= sale.invoice_number %></td>
+                                <td><%= sale.customer_name %></td>
+                                <td class="fw-medium">₹<%= parseFloat(sale.total_amount).toLocaleString('en-IN', {minimumFractionDigits: 2}) %></td>
+                                <td><%= new Date(sale.created_at).toLocaleDateString('en-IN') %></td>
+                            </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>

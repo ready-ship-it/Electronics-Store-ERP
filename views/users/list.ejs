@@ -1,0 +1,45 @@
+<%- include('../partials/header') %>
+<%- include('../partials/sidebar') %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h5 class="mb-1">User Management</h5>
+        <p class="text-muted mb-0" style="font-size: 13px;">Manage system users and roles</p>
+    </div>
+    <% if (user.role === 'master_admin') { %>
+    <a href="/users/add" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Add User</a>
+    <% } %>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table">
+                <thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Role</th><th>Phone</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+                <tbody>
+                    <% users.forEach(u => { %>
+                    <tr>
+                        <td><div class="d-flex align-items-center gap-2"><div class="user-avatar" style="width: 32px; height: 32px; font-size: 12px;"><%= u.full_name.charAt(0).toUpperCase() %></div><span class="fw-medium"><%= u.full_name %></span></div></td>
+                        <td><%= u.username %></td>
+                        <td><%= u.email %></td>
+                        <td><span class="badge-role badge-<%= u.role.replace('_', '-') %>"><%= u.role.replace('_', ' ').toUpperCase() %></span></td>
+                        <td><%= u.phone || '-' %></td>
+                        <td><span class="badge bg-<%= u.is_active ? 'success' : 'danger' %>"><%= u.is_active ? 'Active' : 'Inactive' %></span></td>
+                        <td><%= new Date(u.created_at).toLocaleDateString('en-IN') %></td>
+                        <td>
+                            <% if (user.role === 'master_admin' && u.id !== user.id) { %>
+                            <a href="/users/edit/<%= u.id %>" class="btn btn-sm btn-light"><i class="fas fa-edit"></i></a>
+                            <form action="/users/toggle/<%= u.id %>" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-light <%= u.is_active ? 'text-warning' : 'text-success' %>" title="<%= u.is_active ? 'Disable' : 'Enable' %>"><i class="fas fa-<%= u.is_active ? 'ban' : 'check' %>"></i></button>
+                            </form>
+                            <% } %>
+                        </td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>

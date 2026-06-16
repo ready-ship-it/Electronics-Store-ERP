@@ -1,0 +1,84 @@
+<%- include('../partials/header') %>
+<%- include('../partials/sidebar') %>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+            <div>
+                <a href="/sales" class="btn btn-light btn-sm"><i class="fas fa-arrow-left me-1"></i>Back to Sales</a>
+            </div>
+            <div class="d-flex gap-2">
+                <button onclick="printPage()" class="btn btn-primary"><i class="fas fa-print me-2"></i>Print</button>
+                <a href="/sales/invoice/<%= sale.id %>/pdf" class="btn btn-danger"><i class="fas fa-file-pdf me-2"></i>Download PDF</a>
+            </div>
+        </div>
+
+        <div class="invoice-preview">
+            <div class="text-center mb-4">
+                <h3 class="text-primary mb-1"><%= settings.store_name || 'Electronics Store' %></h3>
+                <p class="text-muted mb-1" style="font-size: 13px;"><%= settings.store_address || '' %></p>
+                <p class="text-muted mb-1" style="font-size: 12px;">Phone: <%= settings.store_phone || '' %> | Email: <%= settings.store_email || '' %></p>
+                <p class="text-muted mb-0" style="font-size: 12px;">GSTIN: <%= settings.store_gstin || 'N/A' %> | PAN: <%= settings.store_pan || 'N/A' %></p>
+            </div>
+
+            <div class="row mb-4" style="border-top: 2px solid #2563eb; border-bottom: 1px solid #e5e7eb; padding: 15px 0;">
+                <div class="col-6">
+                    <h6 class="text-primary mb-2">Bill To:</h6>
+                    <p class="mb-1 fw-bold"><%= sale.customer_name %></p>
+                    <p class="mb-1 text-muted" style="font-size: 12px;"><%= sale.customer_phone || '' %></p>
+                    <p class="mb-1 text-muted" style="font-size: 12px;"><%= sale.customer_email || '' %></p>
+                    <p class="mb-0 text-muted" style="font-size: 12px;"><%= sale.customer_address || '' %></p>
+                </div>
+                <div class="col-6 text-end">
+                    <h6 class="text-primary mb-2">Invoice Details:</h6>
+                    <p class="mb-1"><strong>Invoice #:</strong> <%= sale.invoice_number %></p>
+                    <p class="mb-1"><strong>Date:</strong> <%= new Date(sale.created_at).toLocaleDateString('en-IN') %></p>
+                    <p class="mb-1"><strong>Payment:</strong> <span class="badge bg-light text-dark border"><%= sale.payment_method.toUpperCase() %></span></p>
+                    <p class="mb-0"><strong>Status:</strong> <span class="status-badge status-<%= sale.payment_status %>"><%= sale.payment_status.toUpperCase() %></span></p>
+                </div>
+            </div>
+
+            <table class="table table-bordered">
+                <thead style="background: #2563eb; color: white;">
+                    <tr><th>#</th><th>Product</th><th class="text-end">Qty</th><th class="text-end">Unit Price</th><th class="text-end">GST</th><th class="text-end">Total</th></tr>
+                </thead>
+                <tbody>
+                    <% items.forEach((item, index) => { %>
+                    <tr>
+                        <td><%= index + 1 %></td>
+                        <td><%= item.product_name %><br><small class="text-muted"><%= item.sku || '' %></small></td>
+                        <td class="text-end"><%= item.quantity %></td>
+                        <td class="text-end">₹<%= parseFloat(item.unit_price).toLocaleString('en-IN', {minimumFractionDigits: 2}) %></td>
+                        <td class="text-end"><%= item.gst_rate %>%</td>
+                        <td class="text-end fw-medium">₹<%= parseFloat(item.total_price).toLocaleString('en-IN', {minimumFractionDigits: 2}) %></td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+
+            <div class="row justify-content-end">
+                <div class="col-md-5">
+                    <table class="table table-borderless">
+                        <tr><td class="text-end">Subtotal:</td><td class="text-end fw-medium">₹<%= parseFloat(sale.subtotal).toLocaleString('en-IN', {minimumFractionDigits: 2}) %></td></tr>
+                        <tr><td class="text-end">GST Amount:</td><td class="text-end fw-medium">₹<%= parseFloat(sale.gst_amount).toLocaleString('en-IN', {minimumFractionDigits: 2}) %></td></tr>
+                        <% if (sale.discount > 0) { %>
+                        <tr><td class="text-end text-danger">Discount:</td><td class="text-end fw-medium text-danger">-₹<%= parseFloat(sale.discount).toLocaleString('en-IN', {minimumFractionDigits: 2}) %></td></tr>
+                        <% } %>
+                        <tr style="border-top: 2px solid #2563eb;"><td class="text-end fs-5 fw-bold">Grand Total:</td><td class="text-end fs-5 fw-bold text-primary">₹<%= parseFloat(sale.total_amount).toLocaleString('en-IN', {minimumFractionDigits: 2}) %></td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="mt-4 p-3" style="background: #f0f9ff; border-left: 3px solid #2563eb; font-size: 12px;">
+                <strong>GST Summary:</strong> All prices are inclusive of applicable GST as per Indian tax regulations. This is a computer-generated invoice and does not require a physical signature.
+            </div>
+
+            <div class="text-center mt-4 pt-3" style="border-top: 1px solid #e5e7eb; font-size: 12px; color: #64748b;">
+                <p class="mb-1">Thank you for your business!</p>
+                <p class="mb-0"><%= settings.store_name || 'Electronics Store' %> | <%= settings.store_address || '' %></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> | Electronics Store ERP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #06b6d4;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --sidebar-width: 260px;
+        }
+        * { font-family: 'Inter', sans-serif; }
+        body { background: #f1f5f9; min-height: 100vh; }
+
+        .sidebar {
+            position: fixed;
+            top: 0; left: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--dark);
+            z-index: 1000;
+            overflow-y: auto;
+            transition: all 0.3s;
+        }
+        .sidebar-brand {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .sidebar-brand i { font-size: 28px; color: var(--primary); }
+        .sidebar-brand h4 { color: white; margin: 0; font-weight: 600; font-size: 18px; }
+        .sidebar-brand small { color: var(--secondary); font-size: 11px; }
+
+        .nav-menu { padding: 15px 0; }
+        .nav-item { list-style: none; }
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            color: #94a3b8;
+            text-decoration: none;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: white;
+            background: rgba(255,255,255,0.05);
+            border-left-color: var(--primary);
+        }
+        .nav-link i { width: 20px; text-align: center; }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            transition: all 0.3s;
+        }
+
+        .topbar {
+            background: white;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .page-title { font-size: 20px; font-weight: 600; color: var(--dark); margin: 0; }
+        .user-menu { display: flex; align-items: center; gap: 15px; }
+        .user-avatar {
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .badge-role {
+            font-size: 10px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        .badge-master { background: #fef3c7; color: #92400e; }
+        .badge-admin { background: #dbeafe; color: #1e40af; }
+        .badge-user { background: #e0e7ff; color: #3730a3; }
+
+        .content-wrapper { padding: 25px; }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-2px); }
+        .stat-icon {
+            width: 50px; height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            margin-bottom: 12px;
+        }
+        .stat-icon.blue { background: #eff6ff; color: var(--primary); }
+        .stat-icon.green { background: #ecfdf5; color: var(--success); }
+        .stat-icon.orange { background: #fff7ed; color: var(--warning); }
+        .stat-icon.red { background: #fef2f2; color: var(--danger); }
+        .stat-icon.purple { background: #f5f3ff; color: #8b5cf6; }
+        .stat-icon.cyan { background: #ecfeff; color: var(--info); }
+        .stat-value { font-size: 24px; font-weight: 700; color: var(--dark); }
+        .stat-label { font-size: 13px; color: var(--secondary); margin-top: 4px; }
+
+        .card { border: none; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .card-header {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 18px 20px;
+            border-radius: 12px 12px 0 0 !important;
+        }
+        .card-header h5 { margin: 0; font-weight: 600; color: var(--dark); }
+
+        .table { margin-bottom: 0; }
+        .table th { font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--secondary); border-top: none; background: #f8fafc; }
+        .table td { font-size: 13px; vertical-align: middle; }
+        .btn { border-radius: 8px; font-weight: 500; font-size: 13px; padding: 8px 16px; }
+        .btn-sm { padding: 5px 12px; font-size: 12px; }
+        .btn-primary { background: var(--primary); border-color: var(--primary); }
+        .btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+
+        .form-control, .form-select { border-radius: 8px; border-color: #e2e8f0; font-size: 13px; }
+        .form-control:focus, .form-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+        .alert { border-radius: 10px; border: none; }
+        .alert-success { background: #ecfdf5; color: #065f46; }
+        .alert-danger { background: #fef2f2; color: #991b1b; }
+
+        .product-img { width: 50px; height: 50px; object-fit: cover; border-radius: 8px; }
+        .product-img-placeholder {
+            width: 50px; height: 50px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .status-paid { background: #dcfce7; color: #166534; }
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-partial { background: #dbeafe; color: #1e40af; }
+
+        .low-stock { color: var(--danger); font-weight: 600; }
+        .out-stock { color: #991b1b; font-weight: 600; }
+        .in-stock { color: var(--success); }
+
+        @media (max-width: 991px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.show { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+        }
+
+        .search-box { position: relative; }
+        .search-box i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--secondary); }
+        .search-box input { padding-left: 38px; }
+
+        .invoice-preview { background: white; padding: 30px; border-radius: 12px; }
+        .print-only { display: none; }
+        @media print {
+            .sidebar, .topbar, .no-print { display: none !important; }
+            .main-content { margin-left: 0; }
+            .print-only { display: block; }
+            body { background: white; }
+            .invoice-preview { box-shadow: none; border: 1px solid #ddd; }
+        }
+
+        .chart-container { height: 300px; }
+
+        .nav-section { padding: 8px 20px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; font-weight: 600; }
+    </style>
+</head>
+<body>

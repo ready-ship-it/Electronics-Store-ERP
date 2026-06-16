@@ -1,0 +1,132 @@
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <i class="fas fa-bolt"></i>
+        <div>
+            <h4>Electronics Store</h4>
+            <small>ERP System</small>
+        </div>
+    </div>
+
+    <ul class="nav-menu">
+        <li class="nav-item">
+            <a href="/" class="nav-link <%= path === '/' ? 'active' : '' %>">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+            </a>
+        </li>
+
+        <div class="nav-section">Inventory</div>
+        <li class="nav-item">
+            <a href="/products" class="nav-link <%= path.startsWith('/products') ? 'active' : '' %>">
+                <i class="fas fa-box-open"></i>
+                <span>Products</span>
+            </a>
+        </li>
+
+        <div class="nav-section">Sales</div>
+        <li class="nav-item">
+            <a href="/sales" class="nav-link <%= path === '/sales' ? 'active' : '' %>">
+                <i class="fas fa-shopping-cart"></i>
+                <span>All Sales</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="/sales/new" class="nav-link <%= path === '/sales/new' ? 'active' : '' %>">
+                <i class="fas fa-plus-circle"></i>
+                <span>New Sale</span>
+            </a>
+        </li>
+
+        <div class="nav-section">Reports</div>
+        <li class="nav-item">
+            <a href="/reports" class="nav-link <%= path === '/reports' ? 'active' : '' %>">
+                <i class="fas fa-chart-line"></i>
+                <span>Analytics</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="/reports/daily" class="nav-link <%= path === '/reports/daily' ? 'active' : '' %>">
+                <i class="fas fa-calendar-day"></i>
+                <span>Daily Report</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="/reports/monthly" class="nav-link <%= path === '/reports/monthly' ? 'active' : '' %>">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Monthly Report</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="/reports/yearly" class="nav-link <%= path === '/reports/yearly' ? 'active' : '' %>">
+                <i class="fas fa-calendar"></i>
+                <span>Yearly Report</span>
+            </a>
+        </li>
+
+        <% if (user && (user.role === 'master_admin' || user.role === 'admin')) { %>
+        <div class="nav-section">Administration</div>
+        <li class="nav-item">
+            <a href="/users" class="nav-link <%= path.startsWith('/users') ? 'active' : '' %>">
+                <i class="fas fa-users"></i>
+                <span>Users</span>
+            </a>
+        </li>
+        <% } %>
+
+        <% if (user && user.role === 'master_admin') { %>
+        <li class="nav-item">
+            <a href="/backups" class="nav-link <%= path.startsWith('/backups') ? 'active' : '' %>">
+                <i class="fas fa-database"></i>
+                <span>Backups</span>
+            </a>
+        </li>
+        <% } %>
+
+        <div class="nav-section">Account</div>
+        <li class="nav-item">
+            <a href="/auth/logout" class="nav-link">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </li>
+    </ul>
+</aside>
+
+<!-- Main Content -->
+<div class="main-content">
+    <!-- Topbar -->
+    <div class="topbar no-print">
+        <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-sm btn-light d-lg-none" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h2 class="page-title"><%= title %></h2>
+        </div>
+        <div class="user-menu">
+            <span class="badge-role badge-<%= user.role.replace('_', '-') %>"><%= user.role.replace('_', ' ').toUpperCase() %></span>
+            <div class="user-avatar"><%= user.full_name.charAt(0).toUpperCase() %></div>
+            <div class="d-none d-md-block">
+                <div style="font-size: 13px; font-weight: 600;"><%= user.full_name %></div>
+                <div style="font-size: 11px; color: var(--secondary);"><%= user.email %></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    <% if (success_msg && success_msg.length > 0) { %>
+        <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
+            <i class="fas fa-check-circle me-2"></i><%= success_msg %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <% } %>
+    <% if (error_msg && error_msg.length > 0) { %>
+        <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i><%= error_msg %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <% } %>
+
+    <!-- Content -->
+    <div class="content-wrapper">

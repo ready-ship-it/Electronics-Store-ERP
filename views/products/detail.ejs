@@ -1,0 +1,134 @@
+<%- include('../partials/header') %>
+<%- include('../partials/sidebar') %>
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <% if (product.image) { %>
+                <img src="<%= product.image %>" class="img-fluid rounded" style="max-height: 250px; object-fit: contain;">
+                <% } else { %>
+                <div class="d-flex align-items-center justify-content-center" style="height: 250px; background: #f8fafc; border-radius: 10px;">
+                    <i class="fas fa-image fa-3x text-muted"></i>
+                </div>
+                <% } %>
+                <h5 class="mt-3 mb-1"><%= product.name %></h5>
+                <p class="text-muted mb-2"><%= product.brand || '' %> <%= product.model || '' %></p>
+                <span class="badge bg-light text-dark border"><%= product.category_name || 'Uncategorized' %></span>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header"><h5>Pricing</h5></div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Purchase Price</span>
+                    <span class="fw-medium">₹<%= parseFloat(product.purchase_price).toLocaleString('en-IN', {minimumFractionDigits: 2}) %></span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Selling Price</span>
+                    <span class="fw-bold text-primary">₹<%= parseFloat(product.selling_price).toLocaleString('en-IN', {minimumFractionDigits: 2}) %></span>
+                </div>
+                <% if (product.mrp) { %>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">MRP</span>
+                    <span class="text-decoration-line-through">₹<%= parseFloat(product.mrp).toLocaleString('en-IN', {minimumFractionDigits: 2}) %></span>
+                </div>
+                <% } %>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">GST Rate</span>
+                    <span><%= product.gst_rate || 18 %>%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>Product Details</h5>
+                <div>
+                    <a href="/products/edit/<%= product.id %>" class="btn btn-sm btn-primary"><i class="fas fa-edit me-1"></i>Edit</a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6"><strong>SKU:</strong> <%= product.sku || 'N/A' %></div>
+                    <div class="col-md-6"><strong>Barcode:</strong> <%= product.barcode || 'N/A' %></div>
+                    <div class="col-md-6"><strong>Unit:</strong> <%= product.unit %></div>
+                    <div class="col-md-6"><strong>Created:</strong> <%= new Date(product.created_at).toLocaleDateString('en-IN') %></div>
+                    <div class="col-12"><strong>Description:</strong> <%= product.description || 'No description' %></div>
+                    <% if (product.specifications) { %>
+                    <div class="col-12">
+                        <strong>Specifications:</strong>
+                        <pre class="mt-2 p-3 bg-light rounded"><%= product.specifications %></pre>
+                    </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header"><h5>Stock Information</h5></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4 text-center">
+                        <div class="stat-value" style="font-size: 32px; color: <%= product.quantity <= 0 ? '#ef4444' : product.quantity <= product.min_stock ? '#f59e0b' : '#10b981' %>;"><%= product.quantity %></div>
+                        <div class="stat-label">Current Stock</div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="stat-value" style="font-size: 32px;"><%= product.min_stock %></div>
+                        <div class="stat-label">Min Stock Alert</div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="stat-value" style="font-size: 32px;">
+                            <% if (product.quantity <= 0) { %>
+                            <span class="badge bg-danger">Out of Stock</span>
+                            <% } else if (product.quantity <= product.min_stock) { %>
+                            <span class="badge bg-warning">Low Stock</span>
+                            <% } else { %>
+                            <span class="badge bg-success">In Stock</span>
+                            <% } %>
+                        </div>
+                        <div class="stat-label">Status</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header"><h5>Stock History</h5></div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr><th>Date</th><th>Type</th><th>Qty</th><th>Previous</th><th>New</th><th>Reason</th><th>By</th></tr>
+                        </thead>
+                        <tbody>
+                            <% stockLogs.forEach(log => { %>
+                            <tr>
+                                <td><%= new Date(log.created_at).toLocaleString('en-IN') %></td>
+                                <td>
+                                    <span class="badge bg-<%= log.type === 'in' ? 'success' : log.type === 'out' ? 'danger' : 'warning' %>">
+                                        <%= log.type.toUpperCase() %>
+                                    </span>
+                                </td>
+                                <td><%= log.quantity %></td>
+                                <td><%= log.previous_stock %></td>
+                                <td><%= log.new_stock %></td>
+                                <td><%= log.reason || '-' %></td>
+                                <td><%= log.created_by_name || 'System' %></td>
+                            </tr>
+                            <% }) %>
+                            <% if (stockLogs.length === 0) { %>
+                            <tr><td colspan="7" class="text-center text-muted py-3">No stock history</td></tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>

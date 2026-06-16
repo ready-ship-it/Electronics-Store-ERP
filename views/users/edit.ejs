@@ -1,0 +1,56 @@
+<%- include('../partials/header') %>
+<%- include('../partials/sidebar') %>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header"><h5><i class="fas fa-edit me-2 text-primary"></i>Edit User</h5></div>
+            <div class="card-body">
+                <form action="/users/edit/<%= editUser.id %>?_method=PUT" method="POST">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Full Name *</label>
+                            <input type="text" name="full_name" class="form-control" value="<%= editUser.full_name %>" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control" value="<%= editUser.username %>" disabled>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email *</label>
+                            <input type="email" name="email" class="form-control" value="<%= editUser.email %>" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Phone</label>
+                            <input type="tel" name="phone" class="form-control" value="<%= editUser.phone || '' %>">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">New Password (leave blank to keep current)</label>
+                            <input type="password" name="password" class="form-control" minlength="6">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Role *</label>
+                            <select name="role" class="form-select" required>
+                                <option value="user" <%= editUser.role === 'user' ? 'selected' : '' %>>User</option>
+                                <option value="admin" <%= editUser.role === 'admin' ? 'selected' : '' %>>Admin</option>
+                                <option value="master_admin" <%= editUser.role === 'master_admin' ? 'selected' : '' %>>Master Admin</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="is_active" id="isActive" <%= editUser.is_active ? 'checked' : '' %>>
+                                <label class="form-check-label" for="isActive">Active</label>
+                            </div>
+                        </div>
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i>Update User</button>
+                            <a href="/users" class="btn btn-light">Cancel</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>
