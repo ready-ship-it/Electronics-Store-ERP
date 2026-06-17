@@ -92,7 +92,7 @@ router.get('/add', requireRole(['master_admin', 'admin']), async (req, res) => {
 router.post('/add', requireRole(['master_admin', 'admin']), upload.single('image'), async (req, res) => {
     try {
         const {
-            name, description, category_id, brand, model, sku, barcode,
+            name, description, category_id, brand, model, hsn_code, sku, barcode,
             purchase_price, selling_price, mrp, gst_rate, quantity, min_stock, unit,
             specifications
         } = req.body;
@@ -100,10 +100,10 @@ router.post('/add', requireRole(['master_admin', 'admin']), upload.single('image
         const image = req.file ? '/uploads/products/' + req.file.filename : null;
 
         const [result] = await db.execute(
-            `INSERT INTO products (name, description, category_id, brand, model, sku, barcode,
+            `INSERT INTO products (name, description, category_id, brand, model, hsn_code, sku, barcode,
              purchase_price, selling_price, mrp, gst_rate, quantity, min_stock, unit, image, specifications)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [name, description, category_id || null, brand, model, sku, barcode,
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [name, description, category_id || null, brand, model, hsn_code, sku, barcode,
              purchase_price, selling_price, mrp || selling_price, gst_rate || 18, quantity || 0, min_stock || 5, unit || 'piece', image, specifications || null]
         );
 
@@ -153,7 +153,7 @@ router.put('/edit/:id', requireRole(['master_admin', 'admin']), upload.single('i
     try {
         const { id } = req.params;
         const {
-            name, description, category_id, brand, model, sku, barcode,
+            name, description, category_id, brand, model, hsn_code, sku, barcode,
             purchase_price, selling_price, mrp, gst_rate, quantity, min_stock, unit,
             specifications, remove_image
         } = req.body;
@@ -179,10 +179,10 @@ router.put('/edit/:id', requireRole(['master_admin', 'admin']), upload.single('i
 
         await db.execute(
             `UPDATE products SET 
-             name = ?, description = ?, category_id = ?, brand = ?, model = ?, sku = ?, barcode = ?,
+             name = ?, description = ?, category_id = ?, brand = ?, model = ?, hsn_code = ?, sku = ?, barcode = ?,
              purchase_price = ?, selling_price = ?, mrp = ?, gst_rate = ?, quantity = ?, min_stock = ?, unit = ?, image = ?, specifications = ?
              WHERE id = ?`,
-            [name, description, category_id || null, brand, model, sku, barcode,
+            [name, description, category_id || null, brand, model, hsn_code, sku, barcode,
              purchase_price, selling_price, mrp || selling_price, gst_rate || 18, newQuantity, min_stock || 5, unit || 'piece', image, specifications || null, id]
         );
 

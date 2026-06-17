@@ -54,6 +54,7 @@
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-6"><strong>SKU:</strong> <%= product.sku || 'N/A' %></div>
+                    <div class="col-md-6"><strong>HSN Code:</strong> <%= product.hsn_code || 'N/A' %></div>
                     <div class="col-md-6"><strong>Barcode:</strong> <%= product.barcode || 'N/A' %></div>
                     <div class="col-md-6"><strong>Unit:</strong> <%= product.unit %></div>
                     <div class="col-md-6"><strong>Created:</strong> <%= new Date(product.created_at).toLocaleDateString('en-IN') %></div>

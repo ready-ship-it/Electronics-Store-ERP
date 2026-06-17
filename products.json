@@ -1,0 +1,171 @@
+[
+    {
+        "name": "Panasonic EU 8 in 1 Convertible 1.5 Ton 5 Star Inverter Split AC",
+        "brand": "Panasonic",
+        "model": "CS/CU-EU18CKY5XF",
+        "price": 42990,
+        "mrp": 66000,
+        "category": "Air Conditioner",
+        "specifications": {
+            "hsn_code": "8415",
+            "mrp": 66000
+        },
+        "sku": "PAN-CS/CU-8415"
+    },
+    {
+        "name": "Samsung Crystal 4K Ultra HD Smart LED TV (43 Inches)",
+        "brand": "Samsung",
+        "model": "UA43AUE60AKLXL",
+        "price": 32990,
+        "mrp": 52900,
+        "category": "Television",
+        "specifications": {
+            "hsn_code": "8528",
+            "mrp": 52900
+        },
+        "sku": "SAM-UA43A-8528"
+    },
+    {
+        "name": "Aquaguard 5 L Water Purifier RO+UV+SS+2X Enrich Superio",
+        "brand": "Aquaguard",
+        "model": "Superio RO+UV",
+        "price": 18790,
+        "mrp": 29900,
+        "category": "Water Purifier",
+        "specifications": {
+            "hsn_code": "8421",
+            "mrp": 29900
+        },
+        "sku": "AQU-SUPER-8421"
+    },
+    {
+        "name": "Prestige 1600 W Induction Cooktop Push Button",
+        "brand": "Prestige",
+        "model": "PIC 20.0",
+        "price": 2599,
+        "mrp": 3595,
+        "category": "Induction Cooktop",
+        "specifications": {
+            "hsn_code": "8516",
+            "mrp": 3595
+        },
+        "sku": "PRE-PIC 2-8516"
+    },
+    {
+        "name": "Daikin 1.5 Ton 3 Star Inverter Split AC",
+        "brand": "Daikin",
+        "model": "FTKL50TV",
+        "price": 38990,
+        "mrp": 55000,
+        "category": "Air Conditioner",
+        "specifications": {
+            "hsn_code": "8415",
+            "mrp": 55000
+        },
+        "sku": "DAI-FTKL5-8415"
+    },
+    {
+        "name": "Haier 190 L 4 Star Direct Cool Single Door Refrigerator",
+        "brand": "Haier",
+        "model": "HED-20CFDS",
+        "price": 22490,
+        "mrp": 27000,
+        "category": "Refrigerator",
+        "specifications": {
+            "hsn_code": "8418",
+            "mrp": 27000
+        },
+        "sku": "HAI-HED-2-8418"
+    },
+    {
+        "name": "Samsung Galaxy A07 5G (Light Violet, 128 GB)",
+        "brand": "Samsung",
+        "model": "Galaxy A07 5G",
+        "price": 17990,
+        "mrp": 21000,
+        "category": "Mobile",
+        "specifications": {
+            "hsn_code": "8517",
+            "mrp": 21000
+        },
+        "sku": "SAM-GALAX-8517"
+    },
+    {
+        "name": "USHA 2000 W Induction Cooktop Touch Panel",
+        "brand": "USHA",
+        "model": "IC 3616",
+        "price": 3999,
+        "mrp": 5495,
+        "category": "Induction Cooktop",
+        "specifications": {
+            "hsn_code": "8516",
+            "mrp": 5495
+        },
+        "sku": "USH-IC 36-8516"
+    },
+    {
+        "name": "LG 8 kg 5 Star Fully Automatic Front Load Washing Machine",
+        "brand": "LG",
+        "model": "FHM1208ZDL",
+        "price": 34990,
+        "mrp": 45000,
+        "category": "Washing Machine",
+        "specifications": {
+            "hsn_code": "8450",
+            "mrp": 45000
+        },
+        "sku": "LG-FHM12-8450"
+    },
+    {
+        "name": "Sony Bravia 55 Inches 4K Ultra HD Smart LED Google TV",
+        "brand": "Sony",
+        "model": "KD-55X74L",
+        "price": 57990,
+        "mrp": 99900,
+        "category": "Television",
+        "specifications": {
+            "hsn_code": "8528",
+            "mrp": 99900
+        },
+        "sku": "SON-KD-55-8528"
+    },
+    {
+        "name": "HP Laptop 15s-fq5007TU (Intel Core i3 12th Gen, 8GB RAM, 512GB SSD)",
+        "brand": "HP",
+        "model": "15s-fq5007TU",
+        "price": 40990,
+        "mrp": 52000,
+        "category": "Laptop",
+        "specifications": {
+            "hsn_code": "8471",
+            "mrp": 52000
+        },
+        "sku": "HP-15S-F-8471"
+    },
+    {
+        "name": "Voltas 1.5 Ton 3 Star Split AC",
+        "brand": "Voltas",
+        "model": "183 JZJ",
+        "price": 34999,
+        "mrp": 62000,
+        "category": "Air Conditioner",
+        "specifications": {
+            "hsn_code": "8415",
+            "mrp": 62000
+        },
+        "sku": "VOL-183 J-8415"
+    },
+    {
+        "name": "Samsung 236 L Double Door Refrigerator",
+        "brand": "Samsung",
+        "model": "RT28A3022GS",
+        "price": 27499,
+        "mrp": 33000,
+        "category": "Refrigerator",
+        "specifications": {
+            "hsn_code": "8418",
+            "mrp": 33000
+        },
+        "sku": "SAM-RT28A-8418"
+    }
+]

@@ -1,5 +1,7 @@
 const db = require('../utils/database');
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
 
 async function initializeDatabase() {
     try {
@@ -198,6 +200,18 @@ async function initializeDatabase() {
         }
 
         console.log('✅ Database tables initialized');
+
+        // Run HSN column migration
+        const addHsnColumn = require('./add_hsn_column');
+        await addHsnColumn();
+
+        // Check if we should seed products
+        const productsFile = path.join(__dirname, '../../products_final.json');
+        if (fs.existsSync(productsFile)) {
+            console.log('Found product data, seeding...');
+            const seedProducts = require('./seed_products');
+            await seedProducts();
+        }
     } catch (error) {
         console.error('❌ Database initialization error:', error);
         throw error;
