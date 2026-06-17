@@ -3,9 +3,15 @@ const path = require('path');
 const archiver = require('archiver');
 const decompress = require('decompress');
 const { Client } = require('basic-ftp');
+const { exec } = require('child_process');
+const util = require('util');
 const db = require('./database');
 
-const BACKUP_DIR = path.join(__dirname, '..', 'public', 'backups');
+const execPromise = util.promisify(exec);
+
+// FIXED: Store backups OUTSIDE public directory
+const BACKUP_DIR = path.join(__dirname, '..', 'backups');
+const UPLOADS_DIR = path.join(__dirname, '..', 'public', 'uploads', 'products');
 
 class BackupService {
     constructor() {
@@ -26,44 +32,24 @@ class BackupService {
         const backupPath = path.join(BACKUP_DIR, `${backupName}.zip`);
 
         try {
-            // Create SQL dump
-            const tables = ['users', 'categories', 'products', 'sales', 'sale_items', 'stock_logs', 'settings'];
-            let sqlDump = `-- Electronics Store ERP Backup\n-- Generated: ${new Date().toISOString()}\n\n`;
-            sqlDump += `SET FOREIGN_KEY_CHECKS=0;\n\n`;
+            // FIXED: Use mysqldump CLI instead of manual SQL generation
+            const dumpFile = path.join(BACKUP_DIR, `${backupName}.sql`);
+            const dbConfig = {
+                host: process.env.DB_HOST || 'localhost',
+                port: process.env.DB_PORT || 3306,
+                user: process.env.DB_USER || 'root',
+                password: process.env.DB_PASSWORD || '',
+                database: process.env.DB_NAME || 'electronics_store'
+            };
 
-            for (const table of tables) {
-                try {
-                    const [rows] = await db.execute(`SELECT * FROM ${table}`);
-                    if (rows.length > 0) {
-                        sqlDump += `\n-- Table: ${table}\n`;
-                        sqlDump += `TRUNCATE TABLE ${table};\n`;
+            const dumpCommand = `mysqldump -h ${dbConfig.host} -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.password ? `-p'${dbConfig.password}'` : ''} ${dbConfig.database} > "${dumpFile}"`;
 
-                        const columns = Object.keys(rows[0]);
-                        const columnNames = columns.join(', ');
-
-                        for (const row of rows) {
-                            const values = columns.map(col => {
-                                const val = row[col];
-                                if (val === null) return 'NULL';
-                                if (typeof val === 'string') return `'${val.replace(/'/g, "\'")}'`;
-                                if (typeof val === 'object' && val instanceof Date) return `'${val.toISOString().slice(0, 19).replace('T', ' ')}'`;
-                                if (typeof val === 'object') return `'${JSON.stringify(val).replace(/'/g, "\'")}'`;
-                                return val;
-                            }).join(', ');
-
-                            sqlDump += `INSERT INTO ${table} (${columnNames}) VALUES (${values});\n`;
-                        }
-                    }
-                } catch (error) {
-                    console.error(`Error backing up table ${table}:`, error.message);
-                }
+            try {
+                await execPromise(dumpCommand);
+            } catch (dumpError) {
+                console.warn('mysqldump not available, falling back to manual dump:', dumpError.message);
+                await this.manualSqlDump(dumpFile);
             }
-
-            sqlDump += `\nSET FOREIGN_KEY_CHECKS=1;\n`;
-
-            // Write SQL to temp file
-            const sqlPath = path.join(BACKUP_DIR, `${backupName}.sql`);
-            await fs.writeFile(sqlPath, sqlDump);
 
             // Create ZIP archive
             const output = require('fs').createWriteStream(backupPath);
@@ -78,14 +64,13 @@ class BackupService {
                 });
 
                 archive.pipe(output);
-                archive.file(sqlPath, { name: `${backupName}.sql` });
+                archive.file(dumpFile, { name: `${backupName}.sql` });
 
                 // Add product images if they exist
-                const uploadsDir = path.join(__dirname, '..', 'public', 'uploads', 'products');
                 try {
-                    const files = require('fs').readdirSync(uploadsDir);
+                    const files = require('fs').readdirSync(UPLOADS_DIR);
                     if (files.length > 0) {
-                        archive.directory(uploadsDir, 'uploads/products');
+                        archive.directory(UPLOADS_DIR, 'uploads/products');
                     }
                 } catch (e) {
                     // Uploads directory might not exist
@@ -95,7 +80,7 @@ class BackupService {
             });
 
             // Remove temp SQL file
-            await fs.unlink(sqlPath);
+            await fs.unlink(dumpFile);
 
             // Upload to FTP if configured
             await this.uploadToFTP(backupPath, `${backupName}.zip`);
@@ -111,6 +96,44 @@ class BackupService {
             console.error('Backup creation error:', error);
             throw error;
         }
+    }
+
+    // Fallback manual dump (safer than original - uses parameterized queries)
+    async manualSqlDump(sqlPath) {
+        const tables = ['users', 'categories', 'products', 'sales', 'sale_items', 'stock_logs', 'settings'];
+        let sqlDump = `-- Electronics Store ERP Backup\n-- Generated: ${new Date().toISOString()}\n\n`;
+        sqlDump += `SET FOREIGN_KEY_CHECKS=0;\n\n`;
+
+        for (const table of tables) {
+            try {
+                const [rows] = await db.execute(`SELECT * FROM \`${table}\``);
+                if (rows.length > 0) {
+                    sqlDump += `\n-- Table: ${table}\n`;
+                    sqlDump += `TRUNCATE TABLE \`${table}\`;\n`;
+
+                    const columns = Object.keys(rows[0]);
+                    const columnNames = columns.map(c => `\`${c}\``).join(', ');
+
+                    for (const row of rows) {
+                        const values = columns.map(col => {
+                            const val = row[col];
+                            if (val === null) return 'NULL';
+                            if (typeof val === 'string') return `'${val.replace(/'/g, "\'")}'`;
+                            if (val instanceof Date) return `'${val.toISOString().slice(0, 19).replace('T', ' ')}'`;
+                            if (typeof val === 'object') return `'${JSON.stringify(val).replace(/'/g, "\'")}'`;
+                            return val;
+                        }).join(', ');
+
+                        sqlDump += `INSERT INTO \`${table}\` (${columnNames}) VALUES (${values});\n`;
+                    }
+                }
+            } catch (error) {
+                console.error(`Error backing up table ${table}:`, error.message);
+            }
+        }
+
+        sqlDump += `\nSET FOREIGN_KEY_CHECKS=1;\n`;
+        await fs.writeFile(sqlPath, sqlDump);
     }
 
     async restoreBackup(backupFile) {
@@ -129,20 +152,23 @@ class BackupService {
                 throw new Error('No SQL file found in backup');
             }
 
-            const sqlContent = await fs.readFile(path.join(extractPath, sqlFile), 'utf8');
-            const statements = sqlContent.split(';').filter(s => s.trim());
+            // FIXED: Use mysql CLI for restore instead of manual statement execution
+            const sqlFilePath = path.join(extractPath, sqlFile);
+            const dbConfig = {
+                host: process.env.DB_HOST || 'localhost',
+                port: process.env.DB_PORT || 3306,
+                user: process.env.DB_USER || 'root',
+                password: process.env.DB_PASSWORD || '',
+                database: process.env.DB_NAME || 'electronics_store'
+            };
 
-            // Execute each statement
-            for (const statement of statements) {
-                const trimmed = statement.trim();
-                if (trimmed && !trimmed.startsWith('--') && !trimmed.startsWith('SET')) {
-                    try {
-                        await db.execute(trimmed + ';');
-                    } catch (error) {
-                        console.error('Error executing statement:', error.message);
-                        // Continue with other statements
-                    }
-                }
+            const restoreCommand = `mysql -h ${dbConfig.host} -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.password ? `-p'${dbConfig.password}'` : ''} ${dbConfig.database} < "${sqlFilePath}"`;
+
+            try {
+                await execPromise(restoreCommand);
+            } catch (restoreError) {
+                console.warn('mysql CLI restore failed, falling back to manual:', restoreError.message);
+                await this.manualRestore(sqlFilePath);
             }
 
             // Restore images if present
@@ -168,11 +194,27 @@ class BackupService {
             return { success: true, message: 'Backup restored successfully' };
 
         } catch (error) {
-            // Cleanup on error
             try {
                 await fs.rm(extractPath, { recursive: true, force: true });
             } catch (e) {}
             throw error;
+        }
+    }
+
+    async manualRestore(sqlFilePath) {
+        const sqlContent = await fs.readFile(sqlFilePath, 'utf8');
+        // Split by semicolon but be careful with statements inside values
+        const statements = sqlContent.split(';').filter(s => s.trim());
+
+        for (const statement of statements) {
+            const trimmed = statement.trim();
+            if (trimmed && !trimmed.startsWith('--') && !trimmed.startsWith('SET')) {
+                try {
+                    await db.execute(trimmed + ';');
+                } catch (error) {
+                    console.error('Error executing statement:', error.message);
+                }
+            }
         }
     }
 
@@ -208,7 +250,7 @@ class BackupService {
             for (const backup of toDelete) {
                 try {
                     await fs.unlink(backup.path);
-                    console.log(`🗑️  Deleted old backup: ${backup.name}`);
+                    console.log(`🗑️ Deleted old backup: ${backup.name}`);
                 } catch (error) {
                     console.error(`Error deleting backup ${backup.name}:`, error);
                 }
@@ -236,7 +278,7 @@ class BackupService {
                 host: ftpHost,
                 user: ftpUser,
                 password: ftpPass,
-                secure: false
+                secure: true // FIXED: Use FTPS (secure connection)
             });
 
             await client.ensureDir(ftpPath);

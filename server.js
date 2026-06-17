@@ -6,12 +6,28 @@ const path = require('path');
 const dotenv = require('dotenv');
 const methodOverride = require('method-override');
 const cron = require('node-cron');
+const rateLimit = require('express-rate-limit');
+const csrf = require('csurf');
+const helmet = require('helmet');
 
+// Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
+
+// Security: Validate required environment variables
+if (isProduction) {
+    if (!process.env.SESSION_SECRET) {
+        console.error('❌ FATAL: SESSION_SECRET must be set in production');
+        process.exit(1);
+    }
+    if (!process.env.DB_PASSWORD) {
+        console.error('❌ FATAL: DB_PASSWORD must be set in production');
+        process.exit(1);
+    }
+}
 
 const db = require('./utils/database');
 
@@ -25,6 +41,39 @@ const backupRoutes = require('./routes/backups');
 
 const { setUser, requireAuth, requireRole } = require('./middleware/auth');
 const backupService = require('./utils/backup');
+
+// Security middleware
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+            scriptSrc: ["'self'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+            imgSrc: ["'self'", "data:", "blob:"],
+            fontSrc: ["'self'", "https://cdnjs.cloudflare.com"],
+            connectSrc: ["'self'"]
+        }
+    }
+}));
+
+// Rate limiting for auth routes
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // 5 attempts
+    message: 'Too many login attempts, please try again after 15 minutes',
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+// General rate limiting
+const generalLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 100, // 100 requests per minute
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+app.use(generalLimiter);
 
 // Session store (MySQL)
 const sessionStoreOptions = {
@@ -51,26 +100,31 @@ if (isProduction) {
     app.set('trust proxy', 1);
 }
 
-// Session with proper cookie for production
+// Session with secure cookie for production
 app.use(session({
     key: 'electronics_store_session',
-    secret: process.env.SESSION_SECRET || 'electronics_store_secret_2024_change_this',
+    secret: process.env.SESSION_SECRET || 'development_secret_change_in_production',
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: isProduction,      // true in production (HTTPS)
+        secure: isProduction,
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000,
-        sameSite: isProduction ? 'none' : 'lax',  // 'none' for cross-site in production
-        domain: undefined           // let browser set automatically
+        sameSite: isProduction ? 'none' : 'lax'
     }
 }));
+
+// CSRF protection (after session, before routes)
+const csrfProtection = csrf({ cookie: true });
+app.use(csrfProtection);
 
 app.use(flash());
 app.use(setUser);
 
+// Make CSRF token available to all views
 app.use((req, res, next) => {
+    res.locals.csrfToken = req.csrfToken();
     res.locals.user = req.session.user || null;
     res.locals.success_msg = req.flash('success');
     res.locals.error_msg = req.flash('error');
@@ -78,14 +132,17 @@ app.use((req, res, next) => {
     next();
 });
 
-// Debug middleware - log all requests
-app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} | Session: ${req.sessionID ? 'YES' : 'NO'} | User: ${req.session?.userId || 'none'}`);
-    next();
-});
+// Request logging (only in development)
+if (!isProduction) {
+    app.use((req, res, next) => {
+        console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+        next();
+    });
+}
 
+// Routes
 app.use('/', indexRoutes);
-app.use('/auth', authRoutes);
+app.use('/auth', authLimiter, authRoutes);
 app.use('/products', requireAuth, productRoutes);
 app.use('/sales', requireAuth, saleRoutes);
 app.use('/reports', requireAuth, reportRoutes);
@@ -93,10 +150,10 @@ app.use('/users', requireAuth, requireRole(['master_admin', 'admin']), userRoute
 app.use('/backups', requireAuth, requireRole(['master_admin']), backupRoutes);
 
 app.get('/health', (req, res) => {
-    res.status(200).json({ 
-        status: 'ok', 
+    res.status(200).json({
+        status: 'ok',
         timestamp: new Date().toISOString(),
-        session: req.sessionID ? 'active' : 'none'
+        environment: isProduction ? 'production' : 'development'
     });
 });
 
@@ -106,17 +163,21 @@ app.use((req, res) => {
 
 app.use((err, req, res, next) => {
     console.error('ERROR:', err.stack);
-    res.status(500).render('error', { 
-        title: 'Error', 
-        message: isProduction ? 'Something went wrong!' : err.message 
+    if (err.code === 'EBADCSRFTOKEN') {
+        req.flash('error', 'Invalid form submission. Please try again.');
+        return res.redirect('back');
+    }
+    res.status(500).render('error', {
+        title: 'Error',
+        message: isProduction ? 'Something went wrong!' : err.message
     });
 });
 
 app.listen(PORT, async () => {
     console.log(`\n╔══════════════════════════════════════════════════════════╗`);
-    console.log(`║     ELECTRONICS STORE ERP - INDIA EDITION              ║`);
-    console.log(`║     Server running on port ${PORT}                        ║`);
-    console.log(`║     Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}                    ║`);
+    console.log(`║  ELECTRONICS STORE ERP - INDIA EDITION v2.0            ║`);
+    console.log(`║  Server running on port ${PORT}                          ║`);
+    console.log(`║  Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}                        ║`);
     console.log(`╚══════════════════════════════════════════════════════════╝\n`);
 
     try {
@@ -125,6 +186,7 @@ app.listen(PORT, async () => {
         await require('./database/init')();
         console.log('✅ Database initialized');
 
+        // Scheduled backups
         cron.schedule('0 */2 * * *', async () => {
             console.log('\n🔄 Running scheduled backup...');
             try {
