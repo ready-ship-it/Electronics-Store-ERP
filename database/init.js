@@ -20,6 +20,18 @@ async function initializeDatabase() {
             )
         `);
 
+        // Migrate: Add force_password_change if it doesn't exist
+        try {
+            await db.execute(`ALTER TABLE users ADD COLUMN force_password_change BOOLEAN DEFAULT TRUE`);
+            console.log('✅ Added column force_password_change to users');
+        } catch (e) {
+            if (e.code === 'ER_DUP_FIELDNAME') {
+                // Column already exists
+            } else {
+                console.warn('Warning adding column force_password_change:', e.message);
+            }
+        }
+
         await db.execute(`
             CREATE TABLE IF NOT EXISTS categories (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -60,6 +72,26 @@ async function initializeDatabase() {
             )
         `);
 
+        // Migrate: Add new columns if they don't exist (for existing databases)
+        const productColumns = [
+            { name: 'hsn_code', type: 'VARCHAR(20)' },
+            { name: 'cgst_rate', type: 'DECIMAL(5, 2) DEFAULT 9.00' },
+            { name: 'sgst_rate', type: 'DECIMAL(5, 2) DEFAULT 9.00' },
+            { name: 'igst_rate', type: 'DECIMAL(5, 2) DEFAULT 18.00' }
+        ];
+        for (const col of productColumns) {
+            try {
+                await db.execute(`ALTER TABLE products ADD COLUMN \`${col.name}\` ${col.type}`);
+                console.log(`✅ Added column ${col.name} to products`);
+            } catch (e) {
+                if (e.code === 'ER_DUP_FIELDNAME') {
+                    // Column already exists
+                } else {
+                    console.warn(`Warning adding column ${col.name}:`, e.message);
+                }
+            }
+        }
+
         await db.execute(`
             CREATE TABLE IF NOT EXISTS sales (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -86,6 +118,27 @@ async function initializeDatabase() {
             )
         `);
 
+        // Migrate: Add new columns if they don't exist
+        const salesColumns = [
+            { name: 'customer_gstin', type: 'VARCHAR(15)' },
+            { name: 'is_interstate', type: 'BOOLEAN DEFAULT FALSE' },
+            { name: 'cgst_amount', type: 'DECIMAL(12, 2) DEFAULT 0' },
+            { name: 'sgst_amount', type: 'DECIMAL(12, 2) DEFAULT 0' },
+            { name: 'igst_amount', type: 'DECIMAL(12, 2) DEFAULT 0' }
+        ];
+        for (const col of salesColumns) {
+            try {
+                await db.execute(`ALTER TABLE sales ADD COLUMN \`${col.name}\` ${col.type}`);
+                console.log(`✅ Added column ${col.name} to sales`);
+            } catch (e) {
+                if (e.code === 'ER_DUP_FIELDNAME') {
+                    // Column already exists
+                } else {
+                    console.warn(`Warning adding column ${col.name}:`, e.message);
+                }
+            }
+        }
+
         await db.execute(`
             CREATE TABLE IF NOT EXISTS sale_items (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -103,6 +156,25 @@ async function initializeDatabase() {
                 FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
             )
         `);
+
+        // Migrate: Add new columns if they don't exist
+        const saleItemColumns = [
+            { name: 'cgst_amount', type: 'DECIMAL(12, 2) DEFAULT 0' },
+            { name: 'sgst_amount', type: 'DECIMAL(12, 2) DEFAULT 0' },
+            { name: 'igst_amount', type: 'DECIMAL(12, 2) DEFAULT 0' }
+        ];
+        for (const col of saleItemColumns) {
+            try {
+                await db.execute(`ALTER TABLE sale_items ADD COLUMN \`${col.name}\` ${col.type}`);
+                console.log(`✅ Added column ${col.name} to sale_items`);
+            } catch (e) {
+                if (e.code === 'ER_DUP_FIELDNAME') {
+                    // Column already exists
+                } else {
+                    console.warn(`Warning adding column ${col.name}:`, e.message);
+                }
+            }
+        }
 
         await db.execute(`
             CREATE TABLE IF NOT EXISTS stock_logs (
