@@ -95,6 +95,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride('_method'));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Serve html5-qrcode from node_modules for barcode scanner
+app.use('/js/html5-qrcode', express.static(path.join(__dirname, 'node_modules', 'html5-qrcode')));
+
 // Trust proxy (Railway runs behind proxy)
 if (isProduction) {
     app.set('trust proxy', 1);
