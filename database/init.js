@@ -143,14 +143,29 @@ async function initializeDatabase() {
             )
         `);
 
-        await db.execute(`CREATE INDEX IF NOT EXISTS idx_sales_created_at ON sales(created_at)`);
-        await db.execute(`CREATE INDEX IF NOT EXISTS idx_sales_invoice ON sales(invoice_number)`);
-        await db.execute(`CREATE INDEX IF NOT EXISTS idx_sales_customer_phone ON sales(customer_phone)`);
-        await db.execute(`CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id)`);
-        await db.execute(`CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku)`);
-        await db.execute(`CREATE INDEX IF NOT EXISTS idx_products_hsn ON products(hsn_code)`);
-        await db.execute(`CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items(sale_id)`);
-        await db.execute(`CREATE INDEX IF NOT EXISTS idx_stock_logs_product ON stock_logs(product_id)`);
+        // Create indexes safely (MySQL doesn't support IF NOT EXISTS for indexes)
+        const indexes = [
+            { name: 'idx_sales_created_at', table: 'sales', column: 'created_at' },
+            { name: 'idx_sales_invoice', table: 'sales', column: 'invoice_number' },
+            { name: 'idx_sales_customer_phone', table: 'sales', column: 'customer_phone' },
+            { name: 'idx_products_category', table: 'products', column: 'category_id' },
+            { name: 'idx_products_sku', table: 'products', column: 'sku' },
+            { name: 'idx_products_hsn', table: 'products', column: 'hsn_code' },
+            { name: 'idx_sale_items_sale', table: 'sale_items', column: 'sale_id' },
+            { name: 'idx_stock_logs_product', table: 'stock_logs', column: 'product_id' }
+        ];
+
+        for (const idx of indexes) {
+            try {
+                await db.execute(`CREATE INDEX \`${idx.name}\` ON \`${idx.table}\`(\`${idx.column}\`)`);
+            } catch (e) {
+                if (e.code === 'ER_DUP_KEYNAME') {
+                    // Index already exists, ignore
+                } else {
+                    console.warn(`Warning creating index ${idx.name}:`, e.message);
+                }
+            }
+        }
 
         const categories = [
             ['Television', 'LED, OLED, Smart TVs', 'tv'],

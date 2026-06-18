@@ -115,8 +115,8 @@ app.use(session({
     }
 }));
 
-// CSRF protection (after session, before routes)
-const csrfProtection = csrf({ cookie: true });
+// CSRF protection using session (no cookie-parser needed)
+const csrfProtection = csrf({ cookie: false });
 app.use(csrfProtection);
 
 app.use(flash());
