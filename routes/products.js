@@ -16,7 +16,7 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ 
+const upload = multer({
     storage: storage,
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
     fileFilter: (req, file, cb) => {
@@ -35,9 +35,9 @@ router.get('/', async (req, res) => {
     try {
         const { category, search, stock } = req.query;
         let query = `
-            SELECT p.*, c.name as category_name 
-            FROM products p 
-            LEFT JOIN categories c ON p.category_id = c.id 
+            SELECT p.*, c.name as category_name
+            FROM products p
+            LEFT JOIN categories c ON p.category_id = c.id
             WHERE p.is_active = TRUE
         `;
         const params = [];
@@ -74,6 +74,87 @@ router.get('/', async (req, res) => {
         console.error('Products list error:', error);
         req.flash('error', 'Error loading products');
         res.redirect('/');
+    }
+});
+
+// Barcode Scanner page
+router.get('/scan', async (req, res) => {
+    try {
+        res.render('products/scan', {
+            title: 'Barcode Scanner',
+            path: '/products/scan',
+            user: req.user
+        });
+    } catch (error) {
+        console.error('Barcode scanner page error:', error);
+        req.flash('error', 'Error loading scanner');
+        res.redirect('/products');
+    }
+});
+
+// API: Lookup product by barcode
+router.get('/lookup-barcode/:barcode', async (req, res) => {
+    try {
+        const { barcode } = req.params;
+
+        if (!barcode || barcode.trim() === '') {
+            return res.json({ success: false, message: 'Barcode is required' });
+        }
+
+        const [products] = await db.execute(
+            `SELECT p.*, c.name as category_name
+             FROM products p
+             LEFT JOIN categories c ON p.category_id = c.id
+             WHERE p.barcode = ? AND p.is_active = TRUE`,
+            [barcode.trim()]
+        );
+
+        if (products.length > 0) {
+            const product = products[0];
+            if (product.specifications) {
+                try {
+                    product.specifications = JSON.parse(product.specifications);
+                } catch (e) {
+                    product.specifications = {};
+                }
+            }
+            res.json({ success: true, product });
+        } else {
+            res.json({ success: false, message: 'Product not found' });
+        }
+    } catch (error) {
+        console.error('Barcode lookup error:', error);
+        res.status(500).json({ success: false, message: 'Server error during lookup' });
+    }
+});
+
+// API: Search products by barcode (POST for AJAX)
+router.post('/barcode-search', async (req, res) => {
+    try {
+        const { barcode } = req.body;
+
+        if (!barcode || barcode.trim() === '') {
+            return res.json({ success: false, message: 'Barcode is required' });
+        }
+
+        const [products] = await db.execute(
+            `SELECT p.id, p.name, p.brand, p.model, p.sku, p.barcode,
+                    p.hsn_code, p.selling_price, p.mrp, p.gst_rate,
+                    p.quantity, p.min_stock, p.image, c.name as category_name
+             FROM products p
+             LEFT JOIN categories c ON p.category_id = c.id
+             WHERE p.barcode = ? AND p.is_active = TRUE`,
+            [barcode.trim()]
+        );
+
+        if (products.length > 0) {
+            res.json({ success: true, products });
+        } else {
+            res.json({ success: false, message: 'No product found with this barcode' });
+        }
+    } catch (error) {
+        console.error('Barcode search error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
@@ -178,7 +259,7 @@ router.put('/edit/:id', requireRole(['master_admin', 'admin']), upload.single('i
         const newQuantity = parseInt(quantity) || 0;
 
         await db.execute(
-            `UPDATE products SET 
+            `UPDATE products SET
              name = ?, description = ?, category_id = ?, brand = ?, model = ?, hsn_code = ?, sku = ?, barcode = ?,
              purchase_price = ?, selling_price = ?, mrp = ?, gst_rate = ?, quantity = ?, min_stock = ?, unit = ?, image = ?, specifications = ?
              WHERE id = ?`,
@@ -222,9 +303,9 @@ router.delete('/delete/:id', requireRole(['master_admin']), async (req, res) => 
 router.get('/detail/:id', async (req, res) => {
     try {
         const [products] = await db.execute(`
-            SELECT p.*, c.name as category_name 
-            FROM products p 
-            LEFT JOIN categories c ON p.category_id = c.id 
+            SELECT p.*, c.name as category_name
+            FROM products p
+            LEFT JOIN categories c ON p.category_id = c.id
             WHERE p.id = ?
         `, [req.params.id]);
 
@@ -235,10 +316,10 @@ router.get('/detail/:id', async (req, res) => {
 
         // Get stock history
         const [stockLogs] = await db.execute(`
-            SELECT sl.*, u.full_name as created_by_name 
-            FROM stock_logs sl 
-            LEFT JOIN users u ON sl.created_by = u.id 
-            WHERE sl.product_id = ? 
+            SELECT sl.*, u.full_name as created_by_name
+            FROM stock_logs sl
+            LEFT JOIN users u ON sl.created_by = u.id
+            WHERE sl.product_id = ?
             ORDER BY sl.created_at DESC LIMIT 20
         `, [req.params.id]);
 
