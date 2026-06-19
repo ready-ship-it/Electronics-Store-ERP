@@ -42,7 +42,7 @@ const backupRoutes = require('./routes/backups');
 const { setUser, requireAuth, requireRole } = require('./middleware/auth');
 const backupService = require('./utils/backup');
 
-// Security middleware
+// Security middleware - FIXED CSP to allow unpkg and inline event handlers
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -59,8 +59,8 @@ app.use(helmet({
 
 // Rate limiting for auth routes
 const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 attempts
+    windowMs: 15 * 60 * 1000,
+    max: 5,
     message: 'Too many login attempts, please try again after 15 minutes',
     standardHeaders: true,
     legacyHeaders: false
@@ -68,8 +68,8 @@ const authLimiter = rateLimit({
 
 // General rate limiting
 const generalLimiter = rateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    max: 100, // 100 requests per minute
+    windowMs: 60 * 1000,
+    max: 100,
     standardHeaders: true,
     legacyHeaders: false
 });
@@ -170,11 +170,9 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
     console.error('ERROR:', err.stack);
     if (err.code === 'EBADCSRFTOKEN') {
-        // Safe flash - check if function exists before calling
         if (typeof req.flash === 'function') {
             req.flash('error', 'Invalid form submission. Please try again.');
         }
-        // Redirect to login or back, with a query param for the error message
         const redirectUrl = req.headers.referer || '/login';
         return res.redirect(redirectUrl + '?csrf_error=1');
     }
@@ -186,9 +184,9 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, async () => {
     console.log(`\n╔══════════════════════════════════════════════════════════╗`);
-    console.log(`║  ELECTRONICS STORE ERP - INDIA EDITION v2.0            ║`);
-    console.log(`║  Server running on port ${PORT}                          ║`);
-    console.log(`║  Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}                        ║`);
+    console.log(`║  ELECTRONICS STORE ERP - INDIA EDITION v2.0              ║`);
+    console.log(`║  Server running on port ${PORT}                            ║`);
+    console.log(`║  Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}                          ║`);
     console.log(`╚══════════════════════════════════════════════════════════╝\n`);
 
     try {
@@ -197,7 +195,6 @@ app.listen(PORT, async () => {
         await require('./database/init')();
         console.log('✅ Database initialized');
 
-        // Scheduled backups
         cron.schedule('0 */2 * * *', async () => {
             console.log('\n🔄 Running scheduled backup...');
             try {
