@@ -18,10 +18,18 @@
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
         .input-group-text.barcode-icon { cursor: pointer; background-color: #ffc107; border-color: #ffc107; }
         .input-group-text.barcode-icon:hover { background-color: #ffca2c; }
+        .autofilled { background-color: #e8f5e9 !important; border-color: #4caf50 !important; }
+        .field-hint { font-size: 0.75rem; color: #4caf50; margin-top: 2px; display: none; }
+        .field-hint.show { display: block; }
+        .recent-scans { max-height: 200px; overflow-y: auto; }
+        .scan-item { cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s; }
+        .scan-item:hover { background-color: #f0f0f0; }
+        .product-exists-alert { animation: slideDown 0.3s ease; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .quick-fill-badge { font-size: 0.7rem; padding: 2px 6px; margin-left: 4px; }
     </style>
 </head>
 <body>
-    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="/"><i class="fas fa-store me-2"></i>Electronics Store ERP</a>
@@ -71,11 +79,14 @@
             </div>
         <% } %>
 
+        <!-- Smart Scan Alert -->
+        <div id="scan-alert-container"></div>
+
         <div class="row">
             <div class="col-lg-8">
                 <div class="card">
                     <div class="card-body">
-                        <form action="/products/add" method="POST" enctype="multipart/form-data">
+                        <form action="/products/add" method="POST" enctype="multipart/form-data" id="product-form">
                             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
                             <!-- Barcode Field with Scanner -->
@@ -99,28 +110,32 @@
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Product Name *</label>
-                                    <input type="text" name="name" class="form-control" required>
+                                    <input type="text" name="name" id="name" class="form-control" required>
+                                    <div class="field-hint" id="name-hint"><i class="fas fa-check me-1"></i>Auto-filled from database</div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">SKU *</label>
-                                    <input type="text" name="sku" class="form-control" required>
+                                    <input type="text" name="sku" id="sku" class="form-control" required>
+                                    <div class="field-hint" id="sku-hint"><i class="fas fa-check me-1"></i>Auto-filled from database</div>
                                 </div>
                             </div>
 
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Brand</label>
-                                    <input type="text" name="brand" class="form-control">
+                                    <input type="text" name="brand" id="brand" class="form-control">
+                                    <div class="field-hint" id="brand-hint"><i class="fas fa-check me-1"></i>Auto-filled from database</div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Model</label>
-                                    <input type="text" name="model" class="form-control">
+                                    <input type="text" name="model" id="model" class="form-control">
+                                    <div class="field-hint" id="model-hint"><i class="fas fa-check me-1"></i>Auto-filled from database</div>
                                 </div>
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Category</label>
-                                <select name="category_id" class="form-select">
+                                <select name="category_id" id="category_id" class="form-select">
                                     <option value="">Select Category</option>
                                     <% if (locals.categories) { %>
                                         <% categories.forEach(cat => { %>
@@ -128,22 +143,24 @@
                                         <% }); %>
                                     <% } %>
                                 </select>
+                                <div class="field-hint" id="category-hint"><i class="fas fa-check me-1"></i>Auto-filled from database</div>
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Description</label>
-                                <textarea name="description" class="form-control" rows="3"></textarea>
+                                <textarea name="description" id="description" class="form-control" rows="3"></textarea>
                             </div>
 
                             <!-- HSN & GST -->
                             <div class="row">
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label">HSN Code</label>
-                                    <input type="text" name="hsn_code" class="form-control" placeholder="e.g. 8415">
+                                    <input type="text" name="hsn_code" id="hsn_code" class="form-control" placeholder="e.g. 8415">
+                                    <div class="field-hint" id="hsn-hint"><i class="fas fa-check me-1"></i>Auto-filled from database</div>
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label">GST Rate (%)</label>
-                                    <select name="gst_rate" class="form-select">
+                                    <select name="gst_rate" id="gst_rate" class="form-select">
                                         <option value="5">5%</option>
                                         <option value="12">12%</option>
                                         <option value="18" selected>18%</option>
@@ -152,7 +169,7 @@
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label">Unit</label>
-                                    <select name="unit" class="form-select">
+                                    <select name="unit" id="unit" class="form-select">
                                         <option value="piece" selected>Piece</option>
                                         <option value="kg">KG</option>
                                         <option value="meter">Meter</option>
@@ -167,21 +184,21 @@
                                     <label class="form-label">Purchase Price *</label>
                                     <div class="input-group">
                                         <span class="input-group-text">&#8377;</span>
-                                        <input type="number" name="purchase_price" class="form-control" step="0.01" required>
+                                        <input type="number" name="purchase_price" id="purchase_price" class="form-control" step="0.01" required>
                                     </div>
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label">Selling Price *</label>
                                     <div class="input-group">
                                         <span class="input-group-text">&#8377;</span>
-                                        <input type="number" name="selling_price" class="form-control" step="0.01" required>
+                                        <input type="number" name="selling_price" id="selling_price" class="form-control" step="0.01" required>
                                     </div>
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label">MRP</label>
                                     <div class="input-group">
                                         <span class="input-group-text">&#8377;</span>
-                                        <input type="number" name="mrp" class="form-control" step="0.01">
+                                        <input type="number" name="mrp" id="mrp" class="form-control" step="0.01">
                                     </div>
                                 </div>
                             </div>
@@ -190,11 +207,11 @@
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Initial Quantity</label>
-                                    <input type="number" name="quantity" class="form-control" value="0" min="0">
+                                    <input type="number" name="quantity" id="quantity" class="form-control" value="0" min="0">
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Min Stock Alert</label>
-                                    <input type="number" name="min_stock" class="form-control" value="5" min="0">
+                                    <input type="number" name="min_stock" id="min_stock" class="form-control" value="5" min="0">
                                 </div>
                             </div>
 
@@ -207,11 +224,12 @@
                             <!-- Specifications -->
                             <div class="mb-3">
                                 <label class="form-label">Specifications (JSON format)</label>
-                                <textarea name="specifications" class="form-control" rows="2" placeholder='{"color": "Black", "warranty": "1 Year"}'></textarea>
+                                <textarea name="specifications" id="specifications" class="form-control" rows="2" placeholder='{"color": "Black", "warranty": "1 Year"}'></textarea>
                             </div>
 
                             <div class="d-flex gap-2">
                                 <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Save Product</button>
+                                <button type="button" class="btn btn-outline-warning" id="clear-form-btn"><i class="fas fa-eraser me-1"></i>Clear Form</button>
                                 <a href="/products" class="btn btn-outline-secondary">Cancel</a>
                             </div>
                         </form>
@@ -221,24 +239,47 @@
 
             <!-- Sidebar -->
             <div class="col-lg-4">
-                <div class="card border-info">
-                    <div class="card-header bg-info text-white"><i class="fas fa-lightbulb me-1"></i>Quick Tips</div>
+                <!-- Quick Stats -->
+                <div class="card border-primary mb-3">
+                    <div class="card-header bg-primary text-white"><i class="fas fa-database me-1"></i>Your Database</div>
                     <div class="card-body">
-                        <ul class="list-unstyled mb-0">
-                            <li class="mb-2"><i class="fas fa-barcode me-1 text-warning"></i>Use the barcode scanner to auto-fill product details</li>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Products Saved</span>
+                            <span class="badge bg-primary" id="db-product-count">Loading...</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Barcodes Tracked</span>
+                            <span class="badge bg-success" id="db-barcode-count">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Scans -->
+                <div class="card border-info mb-3">
+                    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-history me-1"></i>Recent Scans</span>
+                        <button class="btn btn-sm btn-light" id="clear-history-btn"><i class="fas fa-trash"></i></button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="recent-scans-list" class="recent-scans p-2">
+                            <div class="text-center text-muted py-3">
+                                <i class="fas fa-barcode fa-2x mb-2"></i>
+                                <p class="mb-0 small">No scans yet</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Tips -->
+                <div class="card border-warning">
+                    <div class="card-header bg-warning text-dark"><i class="fas fa-lightbulb me-1"></i>Quick Tips</div>
+                    <div class="card-body">
+                        <ul class="list-unstyled mb-0 small">
+                            <li class="mb-2"><i class="fas fa-barcode me-1 text-warning"></i>Scan barcode to auto-fill product details</li>
                             <li class="mb-2"><i class="fas fa-file-invoice me-1 text-primary"></i>HSN code is required for GST invoices</li>
                             <li class="mb-2"><i class="fas fa-boxes me-1 text-success"></i>Set min stock to get low stock alerts</li>
                             <li><i class="fas fa-tag me-1 text-danger"></i>MRP should be higher than selling price</li>
                         </ul>
-                    </div>
-                </div>
-
-                <div class="card border-warning mt-3">
-                    <div class="card-header bg-warning text-dark"><i class="fas fa-usb me-1"></i>USB Scanner</div>
-                    <div class="card-body">
-                        <p class="mb-0">Just click the barcode field and scan &mdash; the barcode will be captured automatically!</p>
-                        <hr>
-                        <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Make sure your USB scanner sends Enter after each scan.</small>
                     </div>
                 </div>
             </div>
@@ -276,40 +317,78 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script>
-        // ==================== BARCODE SCANNER MODAL ====================
+        // ==================== CONFIGURATION ====================
+        const CONFIG = {
+            USB_SCAN_TIMEOUT: 100,
+            RECENT_SCANS_MAX: 20,
+            API_ENDPOINTS: {
+                lookup: '/products/lookup-barcode/',
+                stats: '/api/products/stats'
+            }
+        };
+
+        // ==================== STATE ====================
         let modalHtml5QrCode = null;
         let modalIsScanning = false;
+        let usbBarcodeBuffer = '';
+        let usbLastKeyTime = 0;
+        let recentScans = JSON.parse(localStorage.getItem('recentScans') || '[]');
+
+        // ==================== DOM ELEMENTS ====================
         const modalScanner = document.getElementById('barcode-scanner-modal');
         const modalStatus = document.getElementById('modal-scanner-status');
         const modalStartBtn = document.getElementById('modal-start-scan');
         const modalStopBtn = document.getElementById('modal-stop-scan');
+        const scanAlertContainer = document.getElementById('scan-alert-container');
 
-        // Attach event listeners properly (no inline onclick)
-        document.getElementById('barcode-icon-btn').addEventListener('click', openBarcodeModal);
-        document.getElementById('scan-btn').addEventListener('click', openBarcodeModal);
+        // ==================== INITIALIZATION ====================
+        document.addEventListener('DOMContentLoaded', function() {
+            initEventListeners();
+            loadDatabaseStats();
+            renderRecentScans();
+        });
 
+        function initEventListeners() {
+            // Scanner buttons
+            document.getElementById('barcode-icon-btn').addEventListener('click', openBarcodeModal);
+            document.getElementById('scan-btn').addEventListener('click', openBarcodeModal);
+            if (modalStartBtn) modalStartBtn.addEventListener('click', startModalScanner);
+            if (modalStopBtn) modalStopBtn.addEventListener('click', stopModalScanner);
+
+            // Form buttons
+            document.getElementById('clear-form-btn').addEventListener('click', clearForm);
+            document.getElementById('clear-history-btn').addEventListener('click', clearScanHistory);
+
+            // USB scanner
+            document.addEventListener('keydown', handleUSBScanner);
+
+            // Modal cleanup
+            if (modalScanner) {
+                modalScanner.addEventListener('hidden.bs.modal', function() {
+                    if (modalIsScanning) stopModalScanner();
+                });
+            }
+        }
+
+        // ==================== CAMERA SCANNER ====================
         function openBarcodeModal() {
             try {
                 if (typeof bootstrap === 'undefined') {
-                    alert('Bootstrap not loaded. Please check your internet connection.');
+                    showAlert('Bootstrap not loaded. Please check your internet connection.', 'danger');
                     return;
                 }
                 const modal = new bootstrap.Modal(modalScanner);
                 modal.show();
             } catch (err) {
                 console.error('Modal open error:', err);
-                alert('Could not open scanner: ' + err.message);
+                showAlert('Could not open scanner: ' + err.message, 'danger');
             }
         }
-
-        if (modalStartBtn) modalStartBtn.addEventListener('click', startModalScanner);
-        if (modalStopBtn) modalStopBtn.addEventListener('click', stopModalScanner);
 
         function startModalScanner() {
             if (modalIsScanning) return;
             if (typeof Html5Qrcode === 'undefined') {
                 modalStatus.innerHTML = '<span class="badge bg-danger">Scanner library not loaded. Refresh the page.</span>';
-                console.error('Html5Qrcode not loaded. Check if html5-qrcode.min.js loaded.');
                 return;
             }
 
@@ -360,72 +439,328 @@
 
         function onModalScanSuccess(decodedText, decodedResult) {
             stopModalScanner();
-            const barcodeField = document.getElementById('barcode');
-            if (barcodeField) {
-                barcodeField.value = decodedText;
-                barcodeField.classList.add('scan-success');
-                setTimeout(() => barcodeField.classList.remove('scan-success'), 500);
-            }
+            closeModal();
+            processBarcode(decodedText, 'camera');
+        }
+
+        function onModalScanFailure(error) { /* ignore continuous scan failures */ }
+
+        function closeModal() {
             try {
                 const modalInstance = bootstrap.Modal.getInstance(modalScanner);
                 if (modalInstance) modalInstance.hide();
             } catch (e) { console.error('Modal hide error:', e); }
-            playBeep();
-            checkBarcodeExists(decodedText);
         }
 
-        function onModalScanFailure(error) { /* ignore */ }
-
         // ==================== USB SCANNER ====================
-        let usbBarcodeBuffer = '';
-        let usbLastKeyTime = 0;
-        const USB_SCAN_TIMEOUT = 100;
-
-        document.addEventListener('keydown', function(e) {
+        function handleUSBScanner(e) {
             const now = Date.now();
             const timeDiff = now - usbLastKeyTime;
-            if (timeDiff > USB_SCAN_TIMEOUT && usbBarcodeBuffer.length > 0) usbBarcodeBuffer = '';
+            if (timeDiff > CONFIG.USB_SCAN_TIMEOUT && usbBarcodeBuffer.length > 0) {
+                usbBarcodeBuffer = '';
+            }
             usbLastKeyTime = now;
+
             if (e.ctrlKey || e.altKey || e.metaKey) return;
+
             if (e.code === 'Enter') {
                 if (usbBarcodeBuffer.length >= 3) {
                     e.preventDefault();
                     const barcode = usbBarcodeBuffer;
                     usbBarcodeBuffer = '';
-                    const barcodeField = document.getElementById('barcode');
-                    if (barcodeField) {
-                        barcodeField.value = barcode;
-                        barcodeField.classList.add('scan-success');
-                        setTimeout(() => barcodeField.classList.remove('scan-success'), 500);
-                    }
-                    playBeep();
-                    checkBarcodeExists(barcode);
+                    processBarcode(barcode, 'usb');
                 }
                 return;
             }
+
             if (e.key.length !== 1) return;
             usbBarcodeBuffer += e.key;
-        });
+        }
 
-        // ==================== CHECK BARCODE EXISTS ====================
-        function checkBarcodeExists(barcode) {
-            fetch('/products/lookup-barcode/' + encodeURIComponent(barcode))
+        // ==================== SMART AUTO-FILL ====================
+        function processBarcode(barcode, source) {
+            if (!barcode || barcode.trim() === '') return;
+            barcode = barcode.trim();
+
+            // Update barcode field
+            const barcodeField = document.getElementById('barcode');
+            if (barcodeField) {
+                barcodeField.value = barcode;
+                barcodeField.classList.add('scan-success');
+                setTimeout(() => barcodeField.classList.remove('scan-success'), 500);
+            }
+
+            playBeep();
+            addToRecentScans(barcode, source);
+
+            // Lookup in database
+            lookupBarcode(barcode);
+        }
+
+        function lookupBarcode(barcode) {
+            showAlert('<i class="fas fa-spinner fa-spin me-1"></i>Looking up barcode...', 'info', false);
+
+            fetch(CONFIG.API_ENDPOINTS.lookup + encodeURIComponent(barcode))
                 .then(res => res.json())
                 .then(data => {
-                    const barcodeField = document.getElementById('barcode');
-                    if (data.success) {
-                        if (barcodeField) barcodeField.classList.add('is-valid');
-                        const alertDiv = document.createElement('div');
-                        alertDiv.className = 'alert alert-warning alert-dismissible fade show mt-2';
-                        alertDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i><strong>Product already exists!</strong> "' + data.product.name + '" is already in database. <a href="/products/' + data.product.id + '/edit" class="alert-link">Edit it</a> or <a href="/products/' + data.product.id + '" class="alert-link">view details</a>.<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
-                        if (barcodeField && barcodeField.parentElement && barcodeField.parentElement.parentElement) {
-                            barcodeField.parentElement.parentElement.appendChild(alertDiv);
-                        }
+                    clearAlerts();
+                    if (data.success && data.product) {
+                        // Product exists - auto-fill all fields
+                        autoFillForm(data.product);
+                        showProductExistsWarning(data.product);
+                        addToRecentScans(barcode, 'db-found', data.product.name);
                     } else {
-                        if (barcodeField) barcodeField.classList.add('is-valid');
+                        // New product - just confirm barcode captured
+                        showNewProductPrompt(barcode);
+                        addToRecentScans(barcode, 'db-new');
                     }
                 })
-                .catch(err => console.error('Barcode check error:', err));
+                .catch(err => {
+                    console.error('Barcode lookup error:', err);
+                    clearAlerts();
+                    showAlert('Error looking up barcode. You can still enter details manually.', 'warning');
+                });
+        }
+
+        function autoFillForm(product) {
+            const fields = {
+                'name': product.name,
+                'sku': product.sku,
+                'brand': product.brand,
+                'model': product.model,
+                'hsn_code': product.hsn_code,
+                'description': product.description,
+                'purchase_price': product.purchase_price,
+                'selling_price': product.selling_price,
+                'mrp': product.mrp,
+                'quantity': product.quantity || 0,
+                'min_stock': product.min_stock || 5
+            };
+
+            // Fill text inputs
+            Object.keys(fields).forEach(fieldId => {
+                const element = document.getElementById(fieldId);
+                if (element && fields[fieldId]) {
+                    element.value = fields[fieldId];
+                    element.classList.add('autofilled');
+                    showFieldHint(fieldId);
+                }
+            });
+
+            // Fill select fields
+            if (product.category_id) {
+                const categorySelect = document.getElementById('category_id');
+                if (categorySelect) {
+                    categorySelect.value = product.category_id;
+                    categorySelect.classList.add('autofilled');
+                    showFieldHint('category');
+                }
+            }
+
+            if (product.gst_rate) {
+                const gstSelect = document.getElementById('gst_rate');
+                if (gstSelect) gstSelect.value = product.gst_rate;
+            }
+
+            if (product.unit) {
+                const unitSelect = document.getElementById('unit');
+                if (unitSelect) unitSelect.value = product.unit;
+            }
+
+            // Specifications
+            if (product.specifications) {
+                const specField = document.getElementById('specifications');
+                if (specField) {
+                    try {
+                        const specs = typeof product.specifications === 'string' 
+                            ? product.specifications 
+                            : JSON.stringify(product.specifications, null, 2);
+                        specField.value = specs;
+                    } catch (e) {}
+                }
+            }
+        }
+
+        function showFieldHint(fieldId) {
+            const hint = document.getElementById(fieldId + '-hint');
+            if (hint) hint.classList.add('show');
+        }
+
+        function hideAllFieldHints() {
+            document.querySelectorAll('.field-hint').forEach(hint => hint.classList.remove('show'));
+        }
+
+        function showProductExistsWarning(product) {
+            const html = `
+                <div class="alert alert-warning alert-dismissible fade show product-exists-alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Product already exists in your database!</strong>
+                    <div class="mt-2">
+                        <strong>${product.name}</strong> <span class="badge bg-secondary">${product.sku}</span>
+                        <br><small>Brand: ${product.brand || 'N/A'} | Category: ${product.category_name || 'N/A'}</small>
+                    </div>
+                    <div class="mt-2">
+                        <a href="/products/${product.id}/edit" class="btn btn-sm btn-primary me-1">
+                            <i class="fas fa-edit me-1"></i>Edit Product
+                        </a>
+                        <a href="/products/${product.id}" class="btn btn-sm btn-info me-1">
+                            <i class="fas fa-eye me-1"></i>View Details
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearForm()">
+                            <i class="fas fa-plus me-1"></i>Add as New
+                        </button>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            scanAlertContainer.innerHTML = html;
+        }
+
+        function showNewProductPrompt(barcode) {
+            const html = `
+                <div class="alert alert-success alert-dismissible fade show product-exists-alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>New barcode captured!</strong>
+                    <p class="mb-1 mt-1">Barcode <code>${barcode}</code> not found in your database.</p>
+                    <p class="mb-0 small text-muted">Fill in the product details below and click Save.</p>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            scanAlertContainer.innerHTML = html;
+        }
+
+        // ==================== RECENT SCANS ====================
+        function addToRecentScans(barcode, source, productName) {
+            const scan = {
+                barcode: barcode,
+                source: source,
+                productName: productName || null,
+                timestamp: new Date().toISOString()
+            };
+
+            // Remove duplicates
+            recentScans = recentScans.filter(s => s.barcode !== barcode);
+            recentScans.unshift(scan);
+            if (recentScans.length > CONFIG.RECENT_SCANS_MAX) {
+                recentScans = recentScans.slice(0, CONFIG.RECENT_SCANS_MAX);
+            }
+
+            localStorage.setItem('recentScans', JSON.stringify(recentScans));
+            renderRecentScans();
+        }
+
+        function renderRecentScans() {
+            const container = document.getElementById('recent-scans-list');
+            if (!recentScans.length) {
+                container.innerHTML = `
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-barcode fa-2x mb-2"></i>
+                        <p class="mb-0 small">No scans yet</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const sourceIcons = {
+                'camera': '<i class="fas fa-camera text-primary"></i>',
+                'usb': '<i class="fas fa-usb text-warning"></i>',
+                'db-found': '<i class="fas fa-database text-success"></i>',
+                'db-new': '<i class="fas fa-plus-circle text-info"></i>'
+            };
+
+            const html = recentScans.map(scan => {
+                const time = new Date(scan.timestamp).toLocaleTimeString();
+                const icon = sourceIcons[scan.source] || sourceIcons['camera'];
+                const name = scan.productName ? `<div class="small text-success">${scan.productName}</div>` : '';
+                const badge = scan.source === 'db-found' 
+                    ? '<span class="badge bg-success quick-fill-badge">Found</span>' 
+                    : '<span class="badge bg-info quick-fill-badge">New</span>';
+
+                return `
+                    <div class="scan-item d-flex justify-content-between align-items-center" onclick="quickFillBarcode('${scan.barcode}')">
+                        <div>
+                            <div class="font-monospace small">${scan.barcode} ${badge}</div>
+                            ${name}
+                        </div>
+                        <div class="text-muted small">
+                            ${icon}
+                            <span class="ms-1">${time}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+        }
+
+        function quickFillBarcode(barcode) {
+            processBarcode(barcode, 'manual');
+        }
+
+        function clearScanHistory() {
+            recentScans = [];
+            localStorage.removeItem('recentScans');
+            renderRecentScans();
+        }
+
+        // ==================== DATABASE STATS ====================
+        function loadDatabaseStats() {
+            fetch(CONFIG.API_ENDPOINTS.stats)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('db-product-count').textContent = data.totalProducts || 0;
+                        document.getElementById('db-barcode-count').textContent = data.totalBarcodes || 0;
+                    }
+                })
+                .catch(err => {
+                    console.error('Stats load error:', err);
+                    document.getElementById('db-product-count').textContent = '?';
+                    document.getElementById('db-barcode-count').textContent = '?';
+                });
+        }
+
+        // ==================== FORM UTILITIES ====================
+        function clearForm() {
+            document.getElementById('product-form').reset();
+            hideAllFieldHints();
+            clearAlerts();
+
+            // Remove autofilled classes
+            document.querySelectorAll('.autofilled').forEach(el => el.classList.remove('autofilled'));
+
+            // Reset defaults
+            document.getElementById('gst_rate').value = '18';
+            document.getElementById('unit').value = 'piece';
+            document.getElementById('quantity').value = '0';
+            document.getElementById('min_stock').value = '5';
+
+            // Focus barcode field
+            document.getElementById('barcode').focus();
+        }
+
+        function showAlert(message, type, autoDismiss = true) {
+            const html = `
+                <div class="alert alert-${type} alert-dismissible fade show product-exists-alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            scanAlertContainer.innerHTML = html;
+
+            if (autoDismiss && type !== 'danger') {
+                setTimeout(() => {
+                    const alert = scanAlertContainer.querySelector('.alert');
+                    if (alert) {
+                        const bsAlert = new bootstrap.Alert(alert);
+                        bsAlert.close();
+                    }
+                }, 5000);
+            }
+        }
+
+        function clearAlerts() {
+            scanAlertContainer.innerHTML = '';
         }
 
         // ==================== AUDIO FEEDBACK ====================
@@ -442,13 +777,6 @@
                 oscillator.start();
                 oscillator.stop(audioCtx.currentTime + 0.1);
             } catch (e) {}
-        }
-
-        // ==================== MODAL CLEANUP ====================
-        if (modalScanner) {
-            modalScanner.addEventListener('hidden.bs.modal', function () {
-                if (modalIsScanning) stopModalScanner();
-            });
         }
     </script>
 </body>

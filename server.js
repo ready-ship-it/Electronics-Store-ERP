@@ -34,6 +34,7 @@ const db = require('./utils/database');
 const indexRoutes = require('./routes/index');
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
+const productApiRoutes = require('./routes/api-products'); // NEW: API routes
 const saleRoutes = require('./routes/sales');
 const reportRoutes = require('./routes/reports');
 const userRoutes = require('./routes/users');
@@ -42,7 +43,7 @@ const backupRoutes = require('./routes/backups');
 const { setUser, requireAuth, requireRole } = require('./middleware/auth');
 const backupService = require('./utils/backup');
 
-// Security middleware - FIXED CSP to allow unpkg and inline event handlers
+// Security middleware - FIXED CSP
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -150,6 +151,7 @@ if (!isProduction) {
 app.use('/', indexRoutes);
 app.use('/auth', authLimiter, authRoutes);
 app.use('/products', requireAuth, productRoutes);
+app.use('/api/products', requireAuth, productApiRoutes); // NEW: API routes
 app.use('/sales', requireAuth, saleRoutes);
 app.use('/reports', requireAuth, reportRoutes);
 app.use('/users', requireAuth, requireRole(['master_admin', 'admin']), userRoutes);
