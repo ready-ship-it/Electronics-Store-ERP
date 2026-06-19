@@ -315,181 +315,206 @@
     <script>
         // ==================== BARCODE SCANNER MODAL ====================
         let modalHtml5QrCode = null;
-        let modalIsScanning = false;
-        const modalScanner = document.getElementById('barcode-scanner-modal');
-        const modalStatus = document.getElementById('modal-scanner-status');
-        const modalStartBtn = document.getElementById('modal-start-scan');
-        const modalStopBtn = document.getElementById('modal-stop-scan');
+    let modalIsScanning = false;
+    const modalScanner = document.getElementById('barcode-scanner-modal');
+    const modalStatus = document.getElementById('modal-scanner-status');
+    const modalStartBtn = document.getElementById('modal-start-scan');
+    const modalStopBtn = document.getElementById('modal-stop-scan');
 
-        function openBarcodeModal() {
+    function openBarcodeModal() {
+        try {
+            if (typeof bootstrap === 'undefined') {
+                alert('Bootstrap not loaded. Please check your internet connection and refresh the page.');
+                return;
+            }
             const modal = new bootstrap.Modal(modalScanner);
             modal.show();
+        } catch (err) {
+            console.error('Modal open error:', err);
+            alert('Could not open scanner: ' + err.message);
         }
+    }
 
+    if (modalStartBtn) {
         modalStartBtn.addEventListener('click', startModalScanner);
+    }
+    if (modalStopBtn) {
         modalStopBtn.addEventListener('click', stopModalScanner);
+    }
 
-        function startModalScanner() {
-            if (modalIsScanning) return;
+    function startModalScanner() {
+        if (modalIsScanning) return;
 
-            modalHtml5QrCode = new Html5Qrcode("barcode-reader");
-
-            const config = {
-                fps: 10,
-                qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0,
-                formatsToSupport: [
-                    Html5QrcodeSupportedFormats.EAN_13,
-                    Html5QrcodeSupportedFormats.EAN_8,
-                    Html5QrcodeSupportedFormats.UPC_A,
-                    Html5QrcodeSupportedFormats.UPC_E,
-                    Html5QrcodeSupportedFormats.CODE_128,
-                    Html5QrcodeSupportedFormats.CODE_39,
-                    Html5QrcodeSupportedFormats.ITF,
-                    Html5QrcodeSupportedFormats.QR_CODE
-                ]
-            };
-
-            modalHtml5QrCode.start(
-                { facingMode: "environment" },
-                config,
-                onModalScanSuccess,
-                onModalScanFailure
-            ).then(() => {
-                modalIsScanning = true;
-                modalStartBtn.disabled = true;
-                modalStopBtn.disabled = false;
-                modalStatus.innerHTML = '<span class="badge bg-success"><i class="fas fa-video me-1"></i>Scanning...</span>';
-            }).catch(err => {
-                modalStatus.innerHTML = '<span class="badge bg-danger">Camera Error: ' + err.message + '</span>';
-            });
+        // Check if library is loaded
+        if (typeof Html5Qrcode === 'undefined') {
+            modalStatus.innerHTML = '<span class="badge bg-danger">Scanner library not loaded. Please refresh the page.</span>';
+            console.error('Html5Qrcode is not defined. Check if html5-qrcode.min.js loaded correctly.');
+            return;
         }
 
-        function stopModalScanner() {
-            if (!modalHtml5QrCode || !modalIsScanning) return;
+        modalHtml5QrCode = new Html5Qrcode("barcode-reader");
 
-            modalHtml5QrCode.stop().then(() => {
-                modalIsScanning = false;
-                modalStartBtn.disabled = false;
-                modalStopBtn.disabled = true;
-                modalStatus.innerHTML = '<span class="badge bg-secondary">Stopped</span>';
-                modalHtml5QrCode.clear();
-                modalHtml5QrCode = null;
-            }).catch(err => console.error('Stop error:', err));
+        const config = {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0,
+            formatsToSupport: [
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.UPC_A,
+                Html5QrcodeSupportedFormats.UPC_E,
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.CODE_39,
+                Html5QrcodeSupportedFormats.ITF,
+                Html5QrcodeSupportedFormats.QR_CODE
+            ]
+        };
+
+        modalHtml5QrCode.start(
+            { facingMode: "environment" },
+            config,
+            onModalScanSuccess,
+            onModalScanFailure
+        ).then(() => {
+            modalIsScanning = true;
+            modalStartBtn.disabled = true;
+            modalStopBtn.disabled = false;
+            modalStatus.innerHTML = '<span class="badge bg-success"><i class="fas fa-video me-1"></i>Scanning...</span>';
+        }).catch(err => {
+            console.error('Camera scanner error:', err);
+            modalStatus.innerHTML = '<span class="badge bg-danger">Camera Error: ' + err.message + '</span>';
+        });
+    }
+
+    function stopModalScanner() {
+        if (!modalHtml5QrCode || !modalIsScanning) return;
+
+        modalHtml5QrCode.stop().then(() => {
+            modalIsScanning = false;
+            modalStartBtn.disabled = false;
+            modalStopBtn.disabled = true;
+            modalStatus.innerHTML = '<span class="badge bg-secondary">Stopped</span>';
+            modalHtml5QrCode.clear();
+            modalHtml5QrCode = null;
+        }).catch(err => console.error('Stop error:', err));
+    }
+
+    function onModalScanSuccess(decodedText, decodedResult) {
+        stopModalScanner();
+        document.getElementById('barcode').value = decodedText;
+        document.getElementById('barcode').classList.add('scan-success');
+        setTimeout(() => document.getElementById('barcode').classList.remove('scan-success'), 500);
+
+        // Close modal safely
+        try {
+            const modalInstance = bootstrap.Modal.getInstance(modalScanner);
+            if (modalInstance) modalInstance.hide();
+        } catch (e) {
+            console.error('Modal hide error:', e);
         }
 
-        function onModalScanSuccess(decodedText, decodedResult) {
-            stopModalScanner();
-            document.getElementById('barcode').value = decodedText;
-            document.getElementById('barcode').classList.add('scan-success');
-            setTimeout(() => document.getElementById('barcode').classList.remove('scan-success'), 500);
+        playBeep();
+        checkBarcodeExists(decodedText);
+    }
 
-            // Close modal
-            bootstrap.Modal.getInstance(modalScanner).hide();
-
-            // Play beep
-            playBeep();
-
-            // Auto-check if product exists
-            checkBarcodeExists(decodedText);
-        }
-
-        function onModalScanFailure(error) {
-            // Ignore
-        }
+    function onModalScanFailure(error) {
+        // Ignore continuous scan failures
+    }
 
         // ==================== USB SCANNER (Global Capture) ====================
-        let usbBarcodeBuffer = '';
-        let usbLastKeyTime = 0;
-        const USB_SCAN_TIMEOUT = 100;
+    let usbBarcodeBuffer = '';
+    let usbLastKeyTime = 0;
+    const USB_SCAN_TIMEOUT = 100;
 
-        document.addEventListener('keydown', function(e) {
-            // Only capture when add product page is active
-            const now = Date.now();
-            const timeDiff = now - usbLastKeyTime;
+    document.addEventListener('keydown', function(e) {
+        const now = Date.now();
+        const timeDiff = now - usbLastKeyTime;
 
-            if (timeDiff > USB_SCAN_TIMEOUT && usbBarcodeBuffer.length > 0) {
+        if (timeDiff > USB_SCAN_TIMEOUT && usbBarcodeBuffer.length > 0) {
+            usbBarcodeBuffer = '';
+        }
+
+        usbLastKeyTime = now;
+
+        if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+        if (e.code === 'Enter') {
+            if (usbBarcodeBuffer.length >= 3) {
+                e.preventDefault();
+                const barcode = usbBarcodeBuffer;
                 usbBarcodeBuffer = '';
-            }
 
-            usbLastKeyTime = now;
-
-            if (e.ctrlKey || e.altKey || e.metaKey) return;
-
-            if (e.code === 'Enter') {
-                if (usbBarcodeBuffer.length >= 3) {
-                    e.preventDefault();
-                    const barcode = usbBarcodeBuffer;
-                    usbBarcodeBuffer = '';
-
-                    // Fill the barcode field
-                    const barcodeField = document.getElementById('barcode');
+                const barcodeField = document.getElementById('barcode');
+                if (barcodeField) {
                     barcodeField.value = barcode;
                     barcodeField.classList.add('scan-success');
                     setTimeout(() => barcodeField.classList.remove('scan-success'), 500);
-
-                    playBeep();
-                    checkBarcodeExists(barcode);
                 }
-                return;
+
+                playBeep();
+                checkBarcodeExists(barcode);
             }
+            return;
+        }
 
-            if (e.key.length !== 1) return;
-            usbBarcodeBuffer += e.key;
-        });
+        if (e.key.length !== 1) return;
+        usbBarcodeBuffer += e.key;
+    });
 
-        // ==================== CHECK IF BARCODE EXISTS ====================
-        function checkBarcodeExists(barcode) {
-            fetch('/products/lookup-barcode/' + encodeURIComponent(barcode))
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        // Product exists - show warning
-                        const barcodeField = document.getElementById('barcode');
-                        barcodeField.classList.add('is-valid');
+         // ==================== CHECK IF BARCODE EXISTS ====================
+    function checkBarcodeExists(barcode) {
+        fetch('/products/lookup-barcode/' + encodeURIComponent(barcode))
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const barcodeField = document.getElementById('barcode');
+                    if (barcodeField) barcodeField.classList.add('is-valid');
 
-                        // Show alert
-                        const alertDiv = document.createElement('div');
-                        alertDiv.className = 'alert alert-warning alert-dismissible fade show mt-2';
-                        alertDiv.innerHTML = `
-                            <i class="fas fa-exclamation-triangle me-1"></i>
-                            <strong>Product already exists!</strong> 
-                            "${data.product.name}" is already in database. 
-                            <a href="/products/${data.product.id}/edit" class="alert-link">Edit it</a> 
-                            or <a href="/products/${data.product.id}" class="alert-link">view details</a>.
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        `;
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-warning alert-dismissible fade show mt-2';
+                    alertDiv.innerHTML = `
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        <strong>Product already exists!</strong> 
+                        "${data.product.name}" is already in database. 
+                        <a href="/products/${data.product.id}/edit" class="alert-link">Edit it</a> 
+                        or <a href="/products/${data.product.id}" class="alert-link">view details</a>.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    if (barcodeField && barcodeField.parentElement && barcodeField.parentElement.parentElement) {
                         barcodeField.parentElement.parentElement.appendChild(alertDiv);
-                    } else {
-                        // New barcode - good to add
-                        document.getElementById('barcode').classList.add('is-valid');
                     }
-                })
-                .catch(err => console.error('Barcode check error:', err));
-        }
+                } else {
+                    const barcodeField = document.getElementById('barcode');
+                    if (barcodeField) barcodeField.classList.add('is-valid');
+                }
+            })
+            .catch(err => console.error('Barcode check error:', err));
+    }
 
-        // ==================== AUDIO FEEDBACK ====================
-        function playBeep() {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                oscillator.frequency.value = 800;
-                oscillator.type = 'sine';
-                gainNode.gain.value = 0.1;
-                oscillator.start();
-                oscillator.stop(audioCtx.currentTime + 0.1);
-            } catch (e) {}
-        }
+    // ==================== AUDIO FEEDBACK ====================
+    function playBeep() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            gainNode.gain.value = 0.1;
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.1);
+        } catch (e) {}
+    }
 
-        // ==================== MODAL CLEANUP ====================
+    // ==================== MODAL CLEANUP ====================
+    if (modalScanner) {
         modalScanner.addEventListener('hidden.bs.modal', function () {
             if (modalIsScanning) {
                 stopModalScanner();
             }
         });
-    </script>
+    }
+</script>
 </body>
 </html>
