@@ -110,15 +110,15 @@
                                     <i class="fas fa-barcode me-1"></i>Barcode
                                 </label>
                                 <div class="input-group">
-                                    <span class="input-group-text barcode-icon" onclick="openBarcodeModal()" title="Click to scan barcode">
-                                        <i class="fas fa-barcode"></i>
-                                    </span>
+                                    <span class="input-group-text barcode-icon" id="barcode-icon-btn" title="Click to scan barcode">
+    <i class="fas fa-barcode"></i>
+</span>
                                     <input type="text" name="barcode" id="barcode" class="form-control"
                                            placeholder="Scan or type barcode..." 
                                            value="<%= locals.query && query.barcode ? query.barcode : '' %>">
-                                    <button type="button" class="btn btn-warning" onclick="openBarcodeModal()">
-                                        <i class="fas fa-camera me-1"></i>Scan
-                                    </button>
+                                    <button type="button" class="btn btn-warning" id="scan-btn">
+    <i class="fas fa-camera me-1"></i>Scan
+</button>
                                 </div>
                                 <small class="text-muted">
                                     <i class="fas fa-info-circle me-1"></i>
@@ -312,6 +312,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+	document.getElementById('barcode-icon-btn').addEventListener('click', openBarcodeModal);
+document.getElementById('scan-btn').addEventListener('click', openBarcodeModal);
     <script>
         // ==================== BARCODE SCANNER MODAL ====================
         let modalHtml5QrCode = null;
