@@ -118,11 +118,13 @@ app.use(session({
     }
 }));
 
+// Flash MUST be before CSRF so error handler can use req.flash
+app.use(flash());
+
 // CSRF protection using session (no cookie-parser needed)
 const csrfProtection = csrf({ cookie: false });
 app.use(csrfProtection);
 
-app.use(flash());
 app.use(setUser);
 
 // Make CSRF token available to all views
@@ -167,8 +169,13 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
     console.error('ERROR:', err.stack);
     if (err.code === 'EBADCSRFTOKEN') {
-        req.flash('error', 'Invalid form submission. Please try again.');
-        return res.redirect('back');
+        // Safe flash - check if function exists before calling
+        if (typeof req.flash === 'function') {
+            req.flash('error', 'Invalid form submission. Please try again.');
+        }
+        // Redirect to login or back, with a query param for the error message
+        const redirectUrl = req.headers.referer || '/login';
+        return res.redirect(redirectUrl + '?csrf_error=1');
     }
     res.status(500).render('error', {
         title: 'Error',
