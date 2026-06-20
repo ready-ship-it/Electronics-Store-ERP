@@ -6,11 +6,18 @@
         <h5 class="mb-1">Products</h5>
         <p class="text-muted mb-0" style="font-size: 13px;">Manage your inventory</p>
     </div>
-    <% if (user.role === 'master_admin' || user.role === 'admin') { %>
-    <a href="/products/add" class="btn btn-primary">
-        <i class="fas fa-plus me-2"></i>Add Product
-    </a>
-    <% } %>
+    <div class="d-flex gap-2">
+        <% if (user && user.role === 'master_admin') { %>
+        <a href="/products/search-online" class="btn btn-success">
+            <i class="fas fa-globe me-2"></i>Import from Online
+        </a>
+        <% } %>
+        <% if (user.role === 'master_admin' || user.role === 'admin') { %>
+        <a href="/products/add" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Add Product
+        </a>
+        <% } %>
+    </div>
 </div>
 
 <!-- Filters -->

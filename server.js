@@ -34,7 +34,9 @@ const db = require('./utils/database');
 const indexRoutes = require('./routes/index');
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
-const productApiRoutes = require('./routes/api-products'); // NEW: API routes
+const productApiRoutes = require('./routes/api-products');
+const searchOnlineRoutes = require('./routes/search-online'); // NEW: Online search
+const categoriesApiRoutes = require('./routes/api-categories'); // NEW: Categories API
 const saleRoutes = require('./routes/sales');
 const reportRoutes = require('./routes/reports');
 const userRoutes = require('./routes/users');
@@ -51,7 +53,7 @@ app.use(helmet({
             styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
             scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://unpkg.com"],
             scriptSrcAttr: ["'unsafe-inline'"],
-            imgSrc: ["'self'", "data:", "blob:"],
+            imgSrc: ["'self'", "data:", "blob:", "https:"],
             fontSrc: ["'self'", "https://cdnjs.cloudflare.com"],
             connectSrc: ["'self'"]
         }
@@ -151,7 +153,9 @@ if (!isProduction) {
 app.use('/', indexRoutes);
 app.use('/auth', authLimiter, authRoutes);
 app.use('/products', requireAuth, productRoutes);
-app.use('/api/products', requireAuth, productApiRoutes); // NEW: API routes
+app.use('/products', requireAuth, searchOnlineRoutes); // NEW: Online search routes
+app.use('/api/products', requireAuth, productApiRoutes);
+app.use('/api/categories', requireAuth, categoriesApiRoutes); // NEW: Categories API
 app.use('/sales', requireAuth, saleRoutes);
 app.use('/reports', requireAuth, reportRoutes);
 app.use('/users', requireAuth, requireRole(['master_admin', 'admin']), userRoutes);
