@@ -34,15 +34,8 @@ router.get('/', async (req, res) => {
         query += ' ORDER BY p.created_at DESC';
 
         const [products] = await db.execute(query, params);
-
-        // FIX: Fetch unique categories only. DISTINCT prevents duplicates.
-        // Also filter out NULL/empty categories as a safeguard.
-        const [categories] = await db.execute(
-            `SELECT DISTINCT id, name 
-             FROM categories 
-             WHERE name IS NOT NULL AND name != '' 
-             ORDER BY name`
-        );
+        // FIX: Use DISTINCT to prevent duplicate categories
+        const [categories] = await db.execute("SELECT MIN(id) as id, name FROM categories WHERE name IS NOT NULL AND name != '' GROUP BY name ORDER BY name");
 
         res.render('products/list', {
             title: 'Products',
@@ -142,12 +135,7 @@ router.post('/barcode-search', async (req, res) => {
 // Add product page
 router.get('/add', async (req, res) => {
     try {
-        const [categories] = await db.execute(
-            `SELECT DISTINCT id, name 
-             FROM categories 
-             WHERE name IS NOT NULL AND name != '' 
-             ORDER BY name`
-        );
+        const [categories] = await db.execute("SELECT MIN(id) as id, name FROM categories WHERE name IS NOT NULL AND name != '' GROUP BY name ORDER BY name");
         res.render('products/add', {
             title: 'Add Product',
             categories,
@@ -207,12 +195,7 @@ router.get('/edit/:id', async (req, res) => {
             return res.redirect('/products');
         }
 
-        const [categories] = await db.execute(
-            `SELECT DISTINCT id, name 
-             FROM categories 
-             WHERE name IS NOT NULL AND name != '' 
-             ORDER BY name`
-        );
+        const [categories] = await db.execute("SELECT MIN(id) as id, name FROM categories WHERE name IS NOT NULL AND name != '' GROUP BY name ORDER BY name");
         res.render('products/edit', {
             title: 'Edit Product',
             product: products[0],
@@ -273,6 +256,48 @@ router.delete('/delete/:id', requireRole(['master_admin']), async (req, res) => 
     } catch (error) {
         console.error('Delete product error:', error);
         req.flash('error', 'Error deleting product');
+        res.redirect('/products');
+    }
+});
+
+// Product detail page
+router.get('/detail/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [products] = await db.execute(
+            `SELECT p.*, c.name as category_name 
+             FROM products p 
+             LEFT JOIN categories c ON p.category_id = c.id 
+             WHERE p.id = ? AND p.is_active = TRUE`,
+            [id]
+        );
+
+        if (products.length === 0) {
+            req.flash('error', 'Product not found');
+            return res.redirect('/products');
+        }
+
+        // Get stock history if table exists
+        let stockHistory = [];
+        try {
+            const [history] = await db.execute(
+                'SELECT * FROM stock_history WHERE product_id = ? ORDER BY created_at DESC LIMIT 10',
+                [id]
+            );
+            stockHistory = history;
+        } catch (e) {
+            // table may not exist, ignore
+        }
+
+        res.render('products/detail', {
+            title: products[0].name,
+            product: products[0],
+            stockHistory,
+            user: req.user
+        });
+    } catch (error) {
+        console.error('Product detail error:', error);
+        req.flash('error', 'Error loading product details');
         res.redirect('/products');
     }
 });
