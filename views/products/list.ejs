@@ -35,9 +35,18 @@
                 <label class="form-label" style="font-size: 12px;">Category</label>
                 <select name="category" class="form-select">
                     <option value="">All Categories</option>
-                    <% categories.forEach(cat => { %>
+                    <% 
+                    // FIX: Deduplicate categories by name to prevent duplicate dropdown entries
+                    const seenCategories = new Set();
+                    categories.forEach(cat => {
+                        if (cat.name && !seenCategories.has(cat.name)) {
+                            seenCategories.add(cat.name);
+                    %>
                     <option value="<%= cat.id %>" <%= filters.category == cat.id ? 'selected' : '' %>><%= cat.name %></option>
-                    <% }) %>
+                    <% 
+                        }
+                    }); 
+                    %>
                 </select>
             </div>
             <div class="col-md-3">
