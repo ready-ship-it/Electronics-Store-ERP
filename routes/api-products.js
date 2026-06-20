@@ -1,9 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../utils/database');
+const { requireAuth } = require('../middleware/auth');
 
-// GET /api/products/stats - Product database statistics
-router.get('/stats', async (req, res) => {
+/**
+ * GET /api/products/stats
+ * Product database statistics
+ */
+router.get('/stats', requireAuth, async (req, res) => {
     try {
         const [[productCount]] = await db.execute(
             'SELECT COUNT(*) as count FROM products WHERE is_active = TRUE'

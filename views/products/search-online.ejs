@@ -1,649 +1,379 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Search Products Online - Electronics Store ERP</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #f8f9fa; }
-        .navbar-brand { font-weight: 600; }
-        .search-card { border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
-        .platform-badge { font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; }
-        .platform-khosla { background-color: #e3f2fd; color: #1976d2; }
-        .platform-flipkart { background-color: #fff3e0; color: #f57c00; }
-        .platform-amazon { background-color: #fce4ec; color: #c2185b; }
-        .product-card { transition: all 0.2s; border-radius: 10px; }
-        .product-card:hover { transform: translateY(-3px); box-shadow: 0 4px 20px rgba(0,0,0,0.12); }
-        .product-image { height: 180px; object-fit: contain; background: #fff; border-radius: 8px; }
-        .price-tag { font-size: 1.1rem; font-weight: 600; color: #2e7d32; }
-        .mrp-tag { text-decoration: line-through; color: #999; font-size: 0.9rem; }
-        .import-btn { transition: all 0.2s; }
-        .import-btn:hover { transform: scale(1.05); }
-        .import-btn.importing { pointer-events: none; opacity: 0.7; }
-        .duplicate-warning { animation: pulse 1s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-        .search-loading { display: none; }
-        .search-loading.active { display: block; }
-        .stats-bar { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .filter-btn.active { background-color: #1976d2; color: white; }
-    </style>
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="/"><i class="fas fa-store me-2"></i>Electronics Store ERP</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item"><a class="nav-link" href="/"><i class="fas fa-tachometer-alt me-1"></i>Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/products"><i class="fas fa-box me-1"></i>Products</a></li>
-                    <li class="nav-item"><a class="nav-link active" href="/products/search-online"><i class="fas fa-search me-1"></i>Online Search</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/sales"><i class="fas fa-shopping-cart me-1"></i>Sales</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/reports"><i class="fas fa-chart-bar me-1"></i>Reports</a></li>
-                </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-user-shield me-1"></i><%= user ? user.username : 'Master Admin' %>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="/users/profile"><i class="fas fa-user me-1"></i>Profile</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger" href="/auth/logout"><i class="fas fa-sign-out-alt me-1"></i>Logout</a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+<%- include('../partials/header') %>
+<%- include('../partials/sidebar') %>
 
-    <div class="container py-4">
-        <!-- Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h2><i class="fas fa-globe me-2"></i>Search Products Online</h2>
-                <p class="text-muted mb-0"><i class="fas fa-shield-alt me-1"></i>Master Admin Only Feature</p>
-            </div>
-            <div>
-                <a href="/products/add" class="btn btn-primary me-2"><i class="fas fa-plus me-1"></i>Add Manually</a>
-                <a href="/products" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Back</a>
-            </div>
-        </div>
-
-        <!-- Stats Bar -->
-        <div class="card stats-bar text-white mb-4">
-            <div class="card-body py-3">
-                <div class="row text-center">
-                    <div class="col-md-3">
-                        <h5 class="mb-0"><i class="fas fa-database me-1"></i><span id="db-count">Loading...</span></h5>
-                        <small>Products in DB</small>
-                    </div>
-                    <div class="col-md-3">
-                        <h5 class="mb-0"><i class="fas fa-barcode me-1"></i><span id="barcode-count">Loading...</span></h5>
-                        <small>Barcodes Tracked</small>
-                    </div>
-                    <div class="col-md-3">
-                        <h5 class="mb-0"><i class="fas fa-shopping-cart me-1"></i>Khosla</h5>
-                        <small>+ Flipkart + Amazon</small>
-                    </div>
-                    <div class="col-md-3">
-                        <h5 class="mb-0"><i class="fas fa-check-double me-1"></i>Auto-Check</h5>
-                        <small>Duplicate Prevention</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Search Form -->
-        <div class="card search-card mb-4">
-            <div class="card-body">
-                <form id="search-form" action="/products/search-online" method="GET">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text bg-primary text-white"><i class="fas fa-search"></i></span>
-                                <input type="text" name="q" id="search-input" class="form-control" 
-                                       placeholder="Search for home appliances... (e.g., mixer grinder, induction cooktop, water heater)"
-                                       value="<%= query %>" autofocus>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <select name="platform" id="platform-select" class="form-select form-select-lg">
-                                <option value="all" <%= platform === 'all' ? 'selected' : '' %>>All Platforms</option>
-                                <option value="khosla" <%= platform === 'khosla' ? 'selected' : '' %>>Khosla Online</option>
-                                <option value="flipkart" <%= platform === 'flipkart' ? 'selected' : '' %>>Flipkart</option>
-                                <option value="amazon" <%= platform === 'amazon' ? 'selected' : '' %>>Amazon India</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <button type="submit" class="btn btn-primary btn-lg w-100" id="search-btn">
-                                <i class="fas fa-search me-1"></i>Search
-                            </button>
-                        </div>
-                    </div>
-                </form>
-
-                <!-- Quick Search Tags -->
-                <div class="mt-3">
-                    <small class="text-muted me-2">Quick Search:</small>
-                    <button class="btn btn-sm btn-outline-secondary me-1 mb-1 quick-search" data-query="mixer grinder">Mixer Grinder</button>
-                    <button class="btn btn-sm btn-outline-secondary me-1 mb-1 quick-search" data-query="induction cooktop">Induction Cooktop</button>
-                    <button class="btn btn-sm btn-outline-secondary me-1 mb-1 quick-search" data-query="water heater">Water Heater</button>
-                    <button class="btn btn-sm btn-outline-secondary me-1 mb-1 quick-search" data-query="ceiling fan">Ceiling Fan</button>
-                    <button class="btn btn-sm btn-outline-secondary me-1 mb-1 quick-search" data-query="iron press">Iron Press</button>
-                    <button class="btn btn-sm btn-outline-secondary me-1 mb-1 quick-search" data-query="toaster">Toaster</button>
-                    <button class="btn btn-sm btn-outline-secondary me-1 mb-1 quick-search" data-query="kettle">Electric Kettle</button>
-                    <button class="btn btn-sm btn-outline-secondary me-1 mb-1 quick-search" data-query="rice cooker">Rice Cooker</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Loading Indicator -->
-        <div class="search-loading text-center py-5" id="loading-indicator">
-            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-3 text-muted">Searching across platforms... This may take 10-30 seconds</p>
-        </div>
-
-        <!-- Results -->
-        <% if (query) { %>
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 class="mb-0"><i class="fas fa-list me-2"></i>Search Results for "<%= query %>"</h4>
-                <div>
-                    <span class="badge bg-primary me-1"><%= results.khosla.length %> Khosla</span>
-                    <span class="badge bg-warning text-dark me-1"><%= results.flipkart.length %> Flipkart</span>
-                    <span class="badge bg-info text-dark"><%= results.amazon.length %> Amazon</span>
-                </div>
-            </div>
-
-            <!-- Platform Filter Buttons -->
-            <div class="mb-3">
-                <button class="btn btn-sm btn-outline-primary me-1 filter-btn active" data-filter="all">All</button>
-                <button class="btn btn-sm btn-outline-primary me-1 filter-btn" data-filter="khosla">Khosla</button>
-                <button class="btn btn-sm btn-outline-primary me-1 filter-btn" data-filter="flipkart">Flipkart</button>
-                <button class="btn btn-sm btn-outline-primary me-1 filter-btn" data-filter="amazon">Amazon</button>
-            </div>
-
-            <!-- Results Grid -->
-            <div class="row" id="results-grid">
-                <% 
-                const allProducts = [
-                    ...results.khosla.map(p => ({...p, platformClass: 'platform-khosla'})),
-                    ...results.flipkart.map(p => ({...p, platformClass: 'platform-flipkart'})),
-                    ...results.amazon.map(p => ({...p, platformClass: 'platform-amazon'}))
-                ];
-                %>
-
-                <% if (allProducts.length === 0) { %>
-                    <div class="col-12 text-center py-5">
-                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">No products found</h5>
-                        <p class="text-muted">Try a different search term or platform</p>
-                        <% if (results.errors && results.errors.length > 0) { %>
-                            <div class="alert alert-warning mt-3 d-inline-block">
-                                <strong>Errors:</strong><br>
-                                <% results.errors.forEach(err => { %>
-                                    <small><%= err.platform %>: <%= err.error %></small><br>
-                                <% }); %>
-                            </div>
-                        <% } %>
-                    </div>
-                <% } else { %>
-                    <% allProducts.forEach((product, index) => { %>
-                        <div class="col-md-6 col-lg-4 mb-4 product-item" data-platform="<%= product.source %>">
-                            <div class="card product-card h-100">
-                                <div class="card-header d-flex justify-content-between align-items-center">
-                                    <span class="platform-badge <%= product.platformClass %>">
-                                        <i class="fas fa-store me-1"></i><%= product.platform %>
-                                    </span>
-                                    <% if (product.price > 0) { %>
-                                        <span class="price-tag">&#8377;<%= product.price.toLocaleString('en-IN') %></span>
-                                    <% } %>
-                                </div>
-                                <div class="card-body">
-                                    <% if (product.image) { %>
-                                        <img src="<%= product.image %>" alt="<%= product.name %>" class="product-image w-100 mb-3" loading="lazy">
-                                    <% } else { %>
-                                        <div class="product-image w-100 mb-3 d-flex align-items-center justify-content-center bg-light">
-                                            <i class="fas fa-image fa-3x text-muted"></i>
-                                        </div>
-                                    <% } %>
-
-                                    <h6 class="card-title" title="<%= product.name %>"><%= product.name.length > 60 ? product.name.substring(0, 60) + '...' : product.name %></h6>
-
-                                    <div class="mb-2">
-                                        <% if (product.brand) { %>
-                                            <span class="badge bg-secondary me-1"><%= product.brand %></span>
-                                        <% } %>
-                                        <% if (product.mrp > product.price) { %>
-                                            <span class="mrp-tag">MRP: &#8377;<%= product.mrp.toLocaleString('en-IN') %></span>
-                                        <% } %>
-                                    </div>
-
-                                    <div class="d-flex gap-2 mt-3">
-                                        <button class="btn btn-success btn-sm import-btn flex-fill" 
-                                                onclick="importProduct(<%= index %>, '<%= product.source %>')"
-                                                data-product='<%= JSON.stringify(product) %>'>
-                                            <i class="fas fa-download me-1"></i>Import
-                                        </button>
-                                        <a href="<%= product.link %>" target="_blank" class="btn btn-outline-primary btn-sm">
-                                            <i class="fas fa-external-link-alt"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    <% }); %>
-                <% } %>
-            </div>
-        <% } else { %>
-            <!-- Empty State -->
-            <div class="text-center py-5">
-                <i class="fas fa-globe fa-4x text-muted mb-3"></i>
-                <h4 class="text-muted">Search Products from Indian E-commerce Sites</h4>
-                <p class="text-muted">Enter a product name above to search Khosla Online, Flipkart, and Amazon</p>
-                <div class="mt-4">
-                    <div class="row justify-content-center">
-                        <div class="col-md-4 mb-3">
-                            <div class="card border-primary">
-                                <div class="card-body">
-                                    <i class="fas fa-store fa-2x text-primary mb-2"></i>
-                                    <h6>Khosla Online</h6>
-                                    <small class="text-muted">Home appliances & electronics</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <div class="card border-warning">
-                                <div class="card-body">
-                                    <i class="fas fa-shopping-bag fa-2x text-warning mb-2"></i>
-                                    <h6>Flipkart</h6>
-                                    <small class="text-muted">Wide range of products</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <div class="card border-info">
-                                <div class="card-body">
-                                    <i class="fas fa-amazon fa-2x text-info mb-2"></i>
-                                    <h6>Amazon India</h6>
-                                    <small class="text-muted">Global marketplace</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        <% } %>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h5 class="mb-1"><i class="fas fa-globe me-2"></i>Search Products Online</h5>
+        <p class="text-muted mb-0" style="font-size: 13px;">Import products from Khosla, Flipkart, Amazon</p>
     </div>
+    <a href="/products" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Products
+    </a>
+</div>
 
-    <!-- Import Modal -->
-    <div class="modal fade" id="import-modal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title"><i class="fas fa-download me-2"></i>Import Product</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+<!-- Stats Bar -->
+<div class="card bg-gradient-primary text-white mb-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+    <div class="card-body py-3">
+        <div class="row text-center">
+            <div class="col-md-3">
+                <h5 class="mb-0"><i class="fas fa-database me-1"></i><span id="db-count">Loading...</span></h5>
+                <small>Products in DB</small>
+            </div>
+            <div class="col-md-3">
+                <h5 class="mb-0"><i class="fas fa-barcode me-1"></i><span id="barcode-count">Loading...</span></h5>
+                <small>Barcodes Tracked</small>
+            </div>
+            <div class="col-md-3">
+                <h5 class="mb-0"><i class="fas fa-shopping-cart me-1"></i>3 Sites</h5>
+                <small>Khosla + Flipkart + Amazon</small>
+            </div>
+            <div class="col-md-3">
+                <h5 class="mb-0"><i class="fas fa-check-double me-1"></i>Auto-Check</h5>
+                <small>Duplicate Prevention</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Form -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form id="search-form" action="/products/search-online" method="GET">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text bg-primary text-white"><i class="fas fa-search"></i></span>
+                        <input type="text" name="q" id="search-input" class="form-control" 
+                               placeholder="Search for home appliances... (e.g., mixer grinder, induction cooktop)"
+                               value="<%= query %>">
+                    </div>
                 </div>
-                <div class="modal-body">
-                    <form id="import-form">
-                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                        <input type="hidden" name="source_platform" id="import-source">
-
-                        <div class="row">
-                            <div class="col-md-8">
-                                <div class="mb-3">
-                                    <label class="form-label">Product Name *</label>
-                                    <input type="text" name="name" id="import-name" class="form-control" required>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Brand</label>
-                                        <input type="text" name="brand" id="import-brand" class="form-control">
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Model</label>
-                                        <input type="text" name="model" id="import-model" class="form-control">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <img id="import-image-preview" src="" alt="Product" class="img-fluid rounded border">
-                                <input type="hidden" name="image_url" id="import-image-url">
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Barcode</label>
-                                <input type="text" name="barcode" id="import-barcode" class="form-control" placeholder="Will be checked for duplicates">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">SKU (Auto-generated if empty)</label>
-                                <input type="text" name="sku" id="import-sku" class="form-control">
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Category</label>
-                                <select name="category_id" id="import-category" class="form-select">
-                                    <option value="">Select Category</option>
-                                    <!-- Categories will be loaded via AJAX -->
-                                </select>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">HSN Code</label>
-                                <input type="text" name="hsn_code" id="import-hsn" class="form-control" placeholder="e.g. 8415">
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">GST Rate (%)</label>
-                                <select name="gst_rate" id="import-gst" class="form-select">
-                                    <option value="5">5%</option>
-                                    <option value="12">12%</option>
-                                    <option value="18" selected>18%</option>
-                                    <option value="28">28%</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Purchase Price *</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">&#8377;</span>
-                                    <input type="number" name="purchase_price" id="import-purchase-price" class="form-control" step="0.01" required>
-                                </div>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Selling Price *</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">&#8377;</span>
-                                    <input type="number" name="selling_price" id="import-selling-price" class="form-control" step="0.01" required>
-                                </div>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">MRP</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">&#8377;</span>
-                                    <input type="number" name="mrp" id="import-mrp" class="form-control" step="0.01">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Description</label>
-                            <textarea name="description" id="import-description" class="form-control" rows="2"></textarea>
-                        </div>
-
-                        <div class="alert alert-info" id="duplicate-check-alert" style="display: none;">
-                            <i class="fas fa-spinner fa-spin me-1"></i>Checking for duplicates...
-                        </div>
-                    </form>
+                <div class="col-md-3">
+                    <select name="platform" id="platform-select" class="form-select form-select-lg">
+                        <option value="all" <%= platform === 'all' ? 'selected' : '' %>>All Platforms</option>
+                        <option value="khosla" <%= platform === 'khosla' ? 'selected' : '' %>>Khosla Online</option>
+                        <option value="flipkart" <%= platform === 'flipkart' ? 'selected' : '' %>>Flipkart</option>
+                        <option value="amazon" <%= platform === 'amazon' ? 'selected' : '' %>>Amazon India</option>
+                    </select>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-success" id="confirm-import-btn" onclick="confirmImport()">
-                        <i class="fas fa-save me-1"></i>Import to Database
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary btn-lg w-100" id="search-btn">
+                        <i class="fas fa-search me-1"></i>Search
                     </button>
                 </div>
             </div>
+        </form>
+
+        <!-- Quick Search Tags -->
+        <div class="mt-3">
+            <small class="text-muted me-2">Quick Search:</small>
+            <button class="btn btn-sm btn-outline-secondary me-1 mb-1 quick-search" data-query="mixer grinder">Mixer Grinder</button>
+            <button class="btn btn-sm btn-outline-secondary me-1 mb-1 quick-search" data-query="induction cooktop">Induction Cooktop</button>
+            <button class="btn btn-sm btn-outline-secondary me-1 mb-1 quick-search" data-query="water heater">Water Heater</button>
+            <button class="btn btn-sm btn-outline-secondary me-1 mb-1 quick-search" data-query="ceiling fan">Ceiling Fan</button>
+            <button class="btn btn-sm btn-outline-secondary me-1 mb-1 quick-search" data-query="iron press">Iron Press</button>
+            <button class="btn btn-sm btn-outline-secondary me-1 mb-1 quick-search" data-query="toaster">Toaster</button>
+            <button class="btn btn-sm btn-outline-secondary me-1 mb-1 quick-search" data-query="electric kettle">Electric Kettle</button>
+            <button class="btn btn-sm btn-outline-secondary me-1 mb-1 quick-search" data-query="rice cooker">Rice Cooker</button>
         </div>
     </div>
+</div>
 
-    <!-- Toast Container -->
-    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-container"></div>
+<!-- Loading Indicator -->
+<div class="text-center py-5" id="loading-indicator" style="display: none;">
+    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-3 text-muted">Searching across platforms... This may take 10-30 seconds</p>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // ==================== CONFIGURATION ====================
-        const CONFIG = {
-            API_ENDPOINTS: {
-                import: '/products/import-from-online',
-                checkDuplicate: '/products/check-duplicate',
-                categories: '/api/categories'
-            }
-        };
+<!-- Results -->
+<% if (query) { %>
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        <strong>Online Search Feature:</strong> Web scraping for Khosla, Flipkart, and Amazon requires additional setup with Puppeteer/Cheerio.
+        <br>For now, you can use the <strong>Import Product</strong> form below to manually add products with duplicate checking.
+    </div>
 
-        let currentProduct = null;
-        let importModal = null;
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="fas fa-download me-2"></i>Import Product Manually</h5>
+        </div>
+        <div class="card-body">
+            <form id="import-form">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="source_platform" value="manual">
 
-        // ==================== INITIALIZATION ====================
-        document.addEventListener('DOMContentLoaded', function() {
-            importModal = new bootstrap.Modal(document.getElementById('import-modal'));
-            loadDatabaseStats();
-            loadCategories();
-            initEventListeners();
-        });
-
-        function initEventListeners() {
-            // Quick search buttons
-            document.querySelectorAll('.quick-search').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    document.getElementById('search-input').value = this.dataset.query;
-                    document.getElementById('search-form').submit();
-                });
-            });
-
-            // Platform filter buttons
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                    filterResults(this.dataset.filter);
-                });
-            });
-
-            // Show loading on search
-            document.getElementById('search-form').addEventListener('submit', function() {
-                document.getElementById('loading-indicator').classList.add('active');
-                document.getElementById('results-grid').style.opacity = '0.5';
-            });
-
-            // Duplicate check on barcode input
-            document.getElementById('import-barcode').addEventListener('blur', checkDuplicate);
-        }
-
-        // ==================== DATABASE STATS ====================
-        function loadDatabaseStats() {
-            fetch('/api/products/stats')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        document.getElementById('db-count').textContent = data.totalProducts || 0;
-                        document.getElementById('barcode-count').textContent = data.totalBarcodes || 0;
-                    }
-                })
-                .catch(err => console.error('Stats error:', err));
-        }
-
-        // ==================== LOAD CATEGORIES ====================
-        function loadCategories() {
-            fetch(CONFIG.API_ENDPOINTS.categories)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success && data.categories) {
-                        const select = document.getElementById('import-category');
-                        data.categories.forEach(cat => {
-                            const option = document.createElement('option');
-                            option.value = cat.id;
-                            option.textContent = cat.name;
-                            select.appendChild(option);
-                        });
-                    }
-                })
-                .catch(err => console.error('Categories error:', err));
-        }
-
-        // ==================== IMPORT PRODUCT ====================
-        function importProduct(index, source) {
-            // Find the product data from the button's data attribute
-            const btn = event.currentTarget;
-            const productData = JSON.parse(btn.dataset.product);
-            currentProduct = productData;
-
-            // Fill import form
-            document.getElementById('import-source').value = source;
-            document.getElementById('import-name').value = productData.name || '';
-            document.getElementById('import-brand').value = productData.brand || '';
-            document.getElementById('import-model').value = productData.model || '';
-            document.getElementById('import-barcode').value = productData.barcode || '';
-            document.getElementById('import-selling-price').value = productData.price || '';
-            document.getElementById('import-mrp').value = productData.mrp || productData.price || '';
-            document.getElementById('import-description').value = productData.description || '';
-
-            // Image preview
-            const imgPreview = document.getElementById('import-image-preview');
-            const imgUrl = document.getElementById('import-image-url');
-            if (productData.image) {
-                imgPreview.src = productData.image;
-                imgUrl.value = productData.image;
-            } else {
-                imgPreview.src = '/images/no-image.png';
-                imgUrl.value = '';
-            }
-
-            // Show modal
-            importModal.show();
-
-            // Check duplicate if barcode exists
-            if (productData.barcode) {
-                checkDuplicate();
-            }
-        }
-
-        // ==================== CHECK DUPLICATE ====================
-        function checkDuplicate() {
-            const barcode = document.getElementById('import-barcode').value;
-            const name = document.getElementById('import-name').value;
-            const brand = document.getElementById('import-brand').value;
-            const alertDiv = document.getElementById('duplicate-check-alert');
-
-            if (!barcode && !name) return;
-
-            alertDiv.style.display = 'block';
-            alertDiv.className = 'alert alert-info';
-            alertDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Checking for duplicates...';
-
-            const params = new URLSearchParams();
-            if (barcode) params.append('barcode', barcode);
-            if (name) params.append('name', name);
-            if (brand) params.append('brand', brand);
-
-            fetch(CONFIG.API_ENDPOINTS.checkDuplicate + '?' + params)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.exists) {
-                        alertDiv.className = 'alert alert-warning';
-                        alertDiv.innerHTML = `
-                            <i class="fas fa-exclamation-triangle me-1"></i>
-                            <strong>Duplicate found!</strong> 
-                            "${data.product.name}" already exists in your database.
-                            <a href="/products/${data.product.id}/edit" class="alert-link">Edit it</a>
-                        `;
-                        document.getElementById('confirm-import-btn').disabled = true;
-                    } else {
-                        alertDiv.className = 'alert alert-success';
-                        alertDiv.innerHTML = '<i class="fas fa-check-circle me-1"></i>No duplicates found. Safe to import!';
-                        document.getElementById('confirm-import-btn').disabled = false;
-                    }
-                })
-                .catch(err => {
-                    console.error('Duplicate check error:', err);
-                    alertDiv.style.display = 'none';
-                });
-        }
-
-        // ==================== CONFIRM IMPORT ====================
-        function confirmImport() {
-            const form = document.getElementById('import-form');
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData);
-
-            // Validate required fields
-            if (!data.name || !data.purchase_price || !data.selling_price) {
-                showToast('Please fill in all required fields', 'danger');
-                return;
-            }
-
-            const btn = document.getElementById('confirm-import-btn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Importing...';
-
-            fetch(CONFIG.API_ENDPOINTS.import, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': data._csrf
-                },
-                body: JSON.stringify(data)
-            })
-            .then(res => res.json())
-            .then(result => {
-                if (result.success) {
-                    showToast(`Product imported successfully! SKU: ${result.sku}`, 'success');
-                    importModal.hide();
-                    loadDatabaseStats();
-
-                    // Reset form
-                    form.reset();
-                    document.getElementById('duplicate-check-alert').style.display = 'none';
-                } else if (result.duplicate) {
-                    showToast(`Duplicate: ${result.message}`, 'warning');
-                    document.getElementById('duplicate-check-alert').className = 'alert alert-warning';
-                    document.getElementById('duplicate-check-alert').innerHTML = `
-                        <i class="fas fa-exclamation-triangle me-1"></i>
-                        ${result.message} 
-                        <a href="/products/${result.productId}/edit" class="alert-link">Edit Product</a>
-                    `;
-                } else {
-                    showToast(result.message, 'danger');
-                }
-            })
-            .catch(err => {
-                console.error('Import error:', err);
-                showToast('Error importing product', 'danger');
-            })
-            .finally(() => {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-save me-1"></i>Import to Database';
-            });
-        }
-
-        // ==================== FILTER RESULTS ====================
-        function filterResults(platform) {
-            const items = document.querySelectorAll('.product-item');
-            items.forEach(item => {
-                if (platform === 'all' || item.dataset.platform === platform) {
-                    item.style.display = '';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        }
-
-        // ==================== TOAST NOTIFICATIONS ====================
-        function showToast(message, type) {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = `toast align-items-center text-white bg-${type} border-0`;
-            toast.setAttribute('role', 'alert');
-            toast.innerHTML = `
-                <div class="d-flex">
-                    <div class="toast-body">${message}</div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="mb-3">
+                            <label class="form-label">Product Name *</label>
+                            <input type="text" name="name" id="import-name" class="form-control" required 
+                                   value="<%= query %>">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Brand</label>
+                                <input type="text" name="brand" id="import-brand" class="form-control">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Model</label>
+                                <input type="text" name="model" id="import-model" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Barcode</label>
+                            <input type="text" name="barcode" id="import-barcode" class="form-control" 
+                                   placeholder="Scan or enter barcode">
+                            <div class="form-text">Checked for duplicates automatically</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">SKU (Auto-generated if empty)</label>
+                            <input type="text" name="sku" id="import-sku" class="form-control">
+                        </div>
+                    </div>
                 </div>
-            `;
-            container.appendChild(toast);
-            const bsToast = new bootstrap.Toast(toast, { delay: 5000 });
-            bsToast.show();
-            toast.addEventListener('hidden.bs.toast', () => toast.remove());
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Category</label>
+                        <select name="category_id" id="import-category" class="form-select">
+                            <option value="">Select Category</option>
+                            <% categories.forEach(cat => { %>
+                            <option value="<%= cat.id %>"><%= cat.name %></option>
+                            <% }) %>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">HSN Code</label>
+                        <input type="text" name="hsn_code" id="import-hsn" class="form-control" placeholder="e.g. 8415">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">GST Rate (%)</label>
+                        <select name="gst_rate" id="import-gst" class="form-select">
+                            <option value="5">5%</option>
+                            <option value="12">12%</option>
+                            <option value="18" selected>18%</option>
+                            <option value="28">28%</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Purchase Price *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">&#8377;</span>
+                            <input type="number" name="purchase_price" id="import-purchase-price" class="form-control" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Selling Price *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">&#8377;</span>
+                            <input type="number" name="selling_price" id="import-selling-price" class="form-control" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">MRP</label>
+                        <div class="input-group">
+                            <span class="input-group-text">&#8377;</span>
+                            <input type="number" name="mrp" id="import-mrp" class="form-control" step="0.01">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea name="description" id="import-description" class="form-control" rows="2"></textarea>
+                </div>
+
+                <div class="alert alert-warning" id="duplicate-alert" style="display: none;">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    <span id="duplicate-message"></span>
+                </div>
+
+                <button type="button" class="btn btn-success" id="import-btn" onclick="importProduct()">
+                    <i class="fas fa-save me-1"></i>Import to Database
+                </button>
+            </form>
+        </div>
+    </div>
+<% } else { %>
+    <!-- Empty State -->
+    <div class="text-center py-5">
+        <i class="fas fa-globe fa-4x text-muted mb-3"></i>
+        <h4 class="text-muted">Search Products from Indian E-commerce Sites</h4>
+        <p class="text-muted">Enter a product name above to search Khosla Online, Flipkart, and Amazon</p>
+        <div class="mt-4">
+            <div class="row justify-content-center">
+                <div class="col-md-4 mb-3">
+                    <div class="card border-primary">
+                        <div class="card-body">
+                            <i class="fas fa-store fa-2x text-primary mb-2"></i>
+                            <h6>Khosla Online</h6>
+                            <small class="text-muted">Home appliances & electronics</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card border-warning">
+                        <div class="card-body">
+                            <i class="fas fa-shopping-bag fa-2x text-warning mb-2"></i>
+                            <h6>Flipkart</h6>
+                            <small class="text-muted">Wide range of products</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card border-info">
+                        <div class="card-body">
+                            <i class="fab fa-amazon fa-2x text-info mb-2"></i>
+                            <h6>Amazon India</h6>
+                            <small class="text-muted">Global marketplace</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<% } %>
+
+<!-- Toast Container -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-container"></div>
+
+<%- include('../partials/footer') %>
+
+<script>
+    // Load database stats
+    fetch('/api/products/stats')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('db-count').textContent = data.totalProducts || 0;
+                document.getElementById('barcode-count').textContent = data.totalBarcodes || 0;
+            }
+        })
+        .catch(err => console.error('Stats error:', err));
+
+    // Quick search buttons
+    document.querySelectorAll('.quick-search').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('search-input').value = this.dataset.query;
+            document.getElementById('search-form').submit();
+        });
+    });
+
+    // Show loading on search
+    document.getElementById('search-form').addEventListener('submit', function() {
+        document.getElementById('loading-indicator').style.display = 'block';
+    });
+
+    // Import product function
+    function importProduct() {
+        const form = document.getElementById('import-form');
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData);
+
+        // Validate
+        if (!data.name || !data.purchase_price || !data.selling_price) {
+            showToast('Please fill in Name, Purchase Price, and Selling Price', 'danger');
+            return;
         }
-    </script>
-</body>
-</html>
+
+        const btn = document.getElementById('import-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Importing...';
+
+        fetch('/products/import-from-online', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': data._csrf
+            },
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                showToast('Product imported! SKU: ' + result.sku, 'success');
+                // Reset form
+                form.reset();
+                document.getElementById('import-name').value = '';
+                document.getElementById('duplicate-alert').style.display = 'none';
+                // Reload stats
+                loadStats();
+            } else if (result.duplicate) {
+                showToast('Duplicate: ' + result.message, 'warning');
+                const alert = document.getElementById('duplicate-alert');
+                alert.style.display = 'block';
+                alert.className = 'alert alert-warning';
+                document.getElementById('duplicate-message').innerHTML = 
+                    result.message + ' <a href="/products/' + result.productId + '/edit" class="alert-link">Edit Product</a>';
+            } else {
+                showToast(result.message, 'danger');
+            }
+        })
+        .catch(err => {
+            console.error('Import error:', err);
+            showToast('Error importing product', 'danger');
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save me-1"></i>Import to Database';
+        });
+    }
+
+    // Check duplicate on barcode blur
+    document.getElementById('import-barcode').addEventListener('blur', function() {
+        const barcode = this.value;
+        if (!barcode) return;
+
+        fetch('/products/check-duplicate?barcode=' + encodeURIComponent(barcode))
+            .then(res => res.json())
+            .then(data => {
+                const alert = document.getElementById('duplicate-alert');
+                if (data.exists) {
+                    alert.style.display = 'block';
+                    alert.className = 'alert alert-warning';
+                    document.getElementById('duplicate-message').innerHTML = 
+                        'Product with barcode "' + barcode + '" already exists: ' + data.product.name + 
+                        ' <a href="/products/' + data.product.id + '/edit" class="alert-link">Edit</a>';
+                } else {
+                    alert.style.display = 'none';
+                }
+            })
+            .catch(err => console.error('Duplicate check error:', err));
+    });
+
+    function loadStats() {
+        fetch('/api/products/stats')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('db-count').textContent = data.totalProducts || 0;
+                    document.getElementById('barcode-count').textContent = data.totalBarcodes || 0;
+                }
+            })
+            .catch(err => console.error('Stats error:', err));
+    }
+
+    function showToast(message, type) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white bg-${type} border-0`;
+        toast.setAttribute('role', 'alert');
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+        container.appendChild(toast);
+        const bsToast = new bootstrap.Toast(toast, { delay: 5000 });
+        bsToast.show();
+        toast.addEventListener('hidden.bs.toast', () => toast.remove());
+    }
+</script>
