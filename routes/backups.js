@@ -15,18 +15,31 @@ router.get('/', requireMasterAdmin, async (req, res) => {
             user: req.user
         });
     } catch (error) {
+        console.error('Backups list error:', error);
         req.flash('error', 'Error loading backups');
         res.redirect('/');
     }
 });
 
-// Create manual backup
+// Create manual backup (POST /backups/create)
 router.post('/create', requireMasterAdmin, async (req, res) => {
     try {
         const result = await backupService.createBackup();
         req.flash('success', `Backup created: ${result.fileName}`);
     } catch (error) {
         console.error('Manual backup error:', error);
+        req.flash('error', 'Error creating backup: ' + error.message);
+    }
+    res.redirect('/backups');
+});
+
+// FIX: Alias route for "Backup Now" button that may call /backups/backup-now
+router.post('/backup-now', requireMasterAdmin, async (req, res) => {
+    try {
+        const result = await backupService.createBackup();
+        req.flash('success', `Backup created successfully: ${result.fileName}`);
+    } catch (error) {
+        console.error('Backup now error:', error);
         req.flash('error', 'Error creating backup: ' + error.message);
     }
     res.redirect('/backups');
@@ -44,6 +57,7 @@ router.get('/download/:name', requireMasterAdmin, async (req, res) => {
 
         res.download(backupPath);
     } catch (error) {
+        console.error('Download error:', error);
         req.flash('error', 'Error downloading backup');
         res.redirect('/backups');
     }
@@ -53,6 +67,11 @@ router.get('/download/:name', requireMasterAdmin, async (req, res) => {
 router.post('/restore', requireMasterAdmin, async (req, res) => {
     try {
         const { backup_name } = req.body;
+        if (!backup_name) {
+            req.flash('error', 'No backup selected for restore');
+            return res.redirect('/backups');
+        }
+
         const backupPath = path.join(__dirname, '..', 'public', 'backups', backup_name);
 
         if (!fs.existsSync(backupPath)) {
@@ -70,17 +89,58 @@ router.post('/restore', requireMasterAdmin, async (req, res) => {
     res.redirect('/backups');
 });
 
-// Delete backup
+// FIX: Add POST alias for restore (some forms may use action="/backups/restore/:name")
+router.post('/restore/:name', requireMasterAdmin, async (req, res) => {
+    try {
+        const backupName = req.params.name;
+        const backupPath = path.join(__dirname, '..', 'public', 'backups', backupName);
+
+        if (!fs.existsSync(backupPath)) {
+            req.flash('error', 'Backup file not found');
+            return res.redirect('/backups');
+        }
+
+        await backupService.restoreBackup(backupPath);
+        req.flash('success', 'Backup restored successfully! Please restart the application.');
+
+    } catch (error) {
+        console.error('Restore error:', error);
+        req.flash('error', 'Error restoring backup: ' + error.message);
+    }
+    res.redirect('/backups');
+});
+
+// Delete backup - FIX: support both DELETE and POST for HTML form compatibility
 router.delete('/delete/:name', requireMasterAdmin, async (req, res) => {
     try {
         const backupPath = path.join(__dirname, '..', 'public', 'backups', req.params.name);
 
         if (fs.existsSync(backupPath)) {
             fs.unlinkSync(backupPath);
+            req.flash('success', 'Backup deleted successfully');
+        } else {
+            req.flash('error', 'Backup file not found');
         }
-
-        req.flash('success', 'Backup deleted successfully');
     } catch (error) {
+        console.error('Delete error:', error);
+        req.flash('error', 'Error deleting backup');
+    }
+    res.redirect('/backups');
+});
+
+// FIX: POST alias for delete (HTML forms don't support DELETE)
+router.post('/delete/:name', requireMasterAdmin, async (req, res) => {
+    try {
+        const backupPath = path.join(__dirname, '..', 'public', 'backups', req.params.name);
+
+        if (fs.existsSync(backupPath)) {
+            fs.unlinkSync(backupPath);
+            req.flash('success', 'Backup deleted successfully');
+        } else {
+            req.flash('error', 'Backup file not found');
+        }
+    } catch (error) {
+        console.error('Delete error:', error);
         req.flash('error', 'Error deleting backup');
     }
     res.redirect('/backups');

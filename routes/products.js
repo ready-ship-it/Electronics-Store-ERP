@@ -35,7 +35,7 @@ router.get('/', async (req, res) => {
 
         const [products] = await db.execute(query, params);
         // FIX: Use DISTINCT to prevent duplicate categories
-        const [categories] = await db.execute("SELECT MIN(id) as id, name FROM categories WHERE name IS NOT NULL AND name != '' GROUP BY name ORDER BY name");
+        const [categories] = await db.execute('SELECT DISTINCT id, name FROM categories ORDER BY name');
 
         res.render('products/list', {
             title: 'Products',
@@ -135,7 +135,7 @@ router.post('/barcode-search', async (req, res) => {
 // Add product page
 router.get('/add', async (req, res) => {
     try {
-        const [categories] = await db.execute("SELECT MIN(id) as id, name FROM categories WHERE name IS NOT NULL AND name != '' GROUP BY name ORDER BY name");
+        const [categories] = await db.execute('SELECT DISTINCT id, name FROM categories ORDER BY name');
         res.render('products/add', {
             title: 'Add Product',
             categories,
@@ -195,7 +195,7 @@ router.get('/edit/:id', async (req, res) => {
             return res.redirect('/products');
         }
 
-        const [categories] = await db.execute("SELECT MIN(id) as id, name FROM categories WHERE name IS NOT NULL AND name != '' GROUP BY name ORDER BY name");
+        const [categories] = await db.execute('SELECT DISTINCT id, name FROM categories ORDER BY name');
         res.render('products/edit', {
             title: 'Edit Product',
             product: products[0],
@@ -210,7 +210,7 @@ router.get('/edit/:id', async (req, res) => {
 });
 
 // Update product
-router.put('/edit/:id', async (req, res) => {
+router.post('/edit/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const {
@@ -260,45 +260,27 @@ router.delete('/delete/:id', requireRole(['master_admin']), async (req, res) => 
     }
 });
 
-// Product detail page
-router.get('/detail/:id', async (req, res) => {
+// Add category (AJAX endpoint for edit/add pages)
+router.post('/add-category', async (req, res) => {
     try {
-        const { id } = req.params;
-        const [products] = await db.execute(
-            `SELECT p.*, c.name as category_name 
-             FROM products p 
-             LEFT JOIN categories c ON p.category_id = c.id 
-             WHERE p.id = ? AND p.is_active = TRUE`,
-            [id]
-        );
+        const { name } = req.body;
+        if (!name || name.trim() === '') {
+            return res.status(400).json({ success: false, message: 'Category name is required' });
+        }
+        const trimmedName = name.trim();
 
-        if (products.length === 0) {
-            req.flash('error', 'Product not found');
-            return res.redirect('/products');
+        // Check if exists
+        const [existing] = await db.execute('SELECT id, name FROM categories WHERE name = ?', [trimmedName]);
+        if (existing.length > 0) {
+            return res.json({ success: true, message: 'Category already exists', categoryId: existing[0].id, categoryName: existing[0].name });
         }
 
-        // Get stock history if table exists
-        let stockHistory = [];
-        try {
-            const [history] = await db.execute(
-                'SELECT * FROM stock_history WHERE product_id = ? ORDER BY created_at DESC LIMIT 10',
-                [id]
-            );
-            stockHistory = history;
-        } catch (e) {
-            // table may not exist, ignore
-        }
-
-        res.render('products/detail', {
-            title: products[0].name,
-            product: products[0],
-            stockHistory,
-            user: req.user
-        });
+        // Insert
+        const [result] = await db.execute('INSERT INTO categories (name, created_at) VALUES (?, NOW())', [trimmedName]);
+        res.json({ success: true, message: 'Category added', categoryId: result.insertId, categoryName: trimmedName });
     } catch (error) {
-        console.error('Product detail error:', error);
-        req.flash('error', 'Error loading product details');
-        res.redirect('/products');
+        console.error('Add category error:', error);
+        res.status(500).json({ success: false, message: error.message });
     }
 });
 

@@ -7,6 +7,7 @@
         <p class="text-muted mb-0" style="font-size: 13px;">Automatic backups every 2 hours. Last 5 backups retained.</p>
     </div>
     <form action="/backups/create" method="POST">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <button type="submit" class="btn btn-primary"><i class="fas fa-play-circle me-2"></i>Create Backup Now</button>
     </form>
 </div>
@@ -23,13 +24,18 @@
                         <td><%= backup.size %></td>
                         <td><%= new Date(backup.created).toLocaleString('en-IN') %></td>
                         <td>
-                            <a href="/backups/download/<%= backup.name %>" class="btn btn-sm btn-light"><i class="fas fa-download"></i></a>
+                            <a href="/backups/download/<%= backup.name %>" class="btn btn-sm btn-light" title="Download"><i class="fas fa-download"></i></a>
+
                             <form action="/backups/restore" method="POST" class="d-inline" onsubmit="return confirm('WARNING: This will replace all current data! Are you sure?');">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                                 <input type="hidden" name="backup_name" value="<%= backup.name %>">
-                                <button type="submit" class="btn btn-sm btn-light text-warning"><i class="fas fa-undo"></i></button>
+                                <button type="submit" class="btn btn-sm btn-light text-warning" title="Restore"><i class="fas fa-undo"></i></button>
                             </form>
-                            <form action="/backups/delete/<%= backup.name %>?_method=DELETE" method="POST" class="d-inline" onsubmit="return confirm('Delete this backup?');">
-                                <button type="submit" class="btn btn-sm btn-light text-danger"><i class="fas fa-trash"></i></button>
+
+                            <!-- FIX: Use POST instead of ?_method=DELETE for HTML form compatibility -->
+                            <form action="/backups/delete/<%= backup.name %>" method="POST" class="d-inline" onsubmit="return confirm('Delete this backup?');">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <button type="submit" class="btn btn-sm btn-light text-danger" title="Delete"><i class="fas fa-trash"></i></button>
                             </form>
                         </td>
                     </tr>
