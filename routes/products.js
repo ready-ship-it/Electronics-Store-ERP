@@ -34,8 +34,15 @@ router.get('/', async (req, res) => {
         query += ' ORDER BY p.created_at DESC';
 
         const [products] = await db.execute(query, params);
-        // FIX: Use DISTINCT to prevent duplicate categories
-        const [categories] = await db.execute('SELECT DISTINCT id, name FROM categories ORDER BY name');
+
+        // FIX: Fetch unique categories only. DISTINCT prevents duplicates.
+        // Also filter out NULL/empty categories as a safeguard.
+        const [categories] = await db.execute(
+            `SELECT DISTINCT id, name 
+             FROM categories 
+             WHERE name IS NOT NULL AND name != '' 
+             ORDER BY name`
+        );
 
         res.render('products/list', {
             title: 'Products',
@@ -135,7 +142,12 @@ router.post('/barcode-search', async (req, res) => {
 // Add product page
 router.get('/add', async (req, res) => {
     try {
-        const [categories] = await db.execute('SELECT DISTINCT id, name FROM categories ORDER BY name');
+        const [categories] = await db.execute(
+            `SELECT DISTINCT id, name 
+             FROM categories 
+             WHERE name IS NOT NULL AND name != '' 
+             ORDER BY name`
+        );
         res.render('products/add', {
             title: 'Add Product',
             categories,
@@ -195,7 +207,12 @@ router.get('/edit/:id', async (req, res) => {
             return res.redirect('/products');
         }
 
-        const [categories] = await db.execute('SELECT DISTINCT id, name FROM categories ORDER BY name');
+        const [categories] = await db.execute(
+            `SELECT DISTINCT id, name 
+             FROM categories 
+             WHERE name IS NOT NULL AND name != '' 
+             ORDER BY name`
+        );
         res.render('products/edit', {
             title: 'Edit Product',
             product: products[0],
