@@ -13,69 +13,44 @@ router.get('/search-online', requireMasterAdmin, async (req, res) => {
 
         let results = { khosla: [], flipkart: [], amazon: [], errors: [] };
 
-        // If query provided, simulate search results (since web scraping is complex)
-        // In production, you'd call actual scraper here
+        // If query provided, simulate search results
         if (q && q.trim() !== '') {
-            // For demo: create sample results based on search query
             const searchTerm = q.trim().toLowerCase();
 
-            // Sample data for demonstration
+            // Expanded sample data covering all quick-search categories
             const sampleProducts = [
-                {
-                    name: 'Prestige Induction Cooktop PIC 6.0 V3',
-                    brand: 'Prestige',
-                    model: 'PIC 6.0 V3',
-                    price: 2499,
-                    mrp: 3495,
-                    image: 'https://via.placeholder.com/300x300?text=Prestige+Induction',
-                    link: 'https://www.khoslaonline.com',
-                    source: 'khosla',
-                    platform: 'Khosla Online'
-                },
-                {
-                    name: 'Philips HD4928/01 Induction Cooktop',
-                    brand: 'Philips',
-                    model: 'HD4928/01',
-                    price: 3299,
-                    mrp: 4495,
-                    image: 'https://via.placeholder.com/300x300?text=Philips+Induction',
-                    link: 'https://www.flipkart.com',
-                    source: 'flipkart',
-                    platform: 'Flipkart'
-                },
-                {
-                    name: 'Pigeon by Stovekraft Favourite Induction Cooktop',
-                    brand: 'Pigeon',
-                    model: 'Favourite',
-                    price: 1299,
-                    mrp: 1999,
-                    image: 'https://via.placeholder.com/300x300?text=Pigeon+Induction',
-                    link: 'https://www.amazon.in',
-                    source: 'amazon',
-                    platform: 'Amazon'
-                },
-                {
-                    name: 'Usha Cook Joy CJ1603 Induction Cooktop',
-                    brand: 'Usha',
-                    model: 'CJ1603',
-                    price: 1899,
-                    mrp: 2590,
-                    image: 'https://via.placeholder.com/300x300?text=Usha+Induction',
-                    link: 'https://www.khoslaonline.com',
-                    source: 'khosla',
-                    platform: 'Khosla Online'
-                },
-                {
-                    name: 'Bajaj Majesty ICX 7 Induction Cooktop',
-                    brand: 'Bajaj',
-                    model: 'Majesty ICX 7',
-                    price: 2199,
-                    mrp: 2999,
-                    image: 'https://via.placeholder.com/300x300?text=Bajaj+Induction',
-                    link: 'https://www.flipkart.com',
-                    source: 'flipkart',
-                    platform: 'Flipkart'
-                }
+                // Mixer Grinders
+                { name: 'Prestige Iris 750 Watt Mixer Grinder', brand: 'Prestige', model: 'Iris', price: 2999, mrp: 4495, image: 'https://via.placeholder.com/300x300?text=Prestige+Mixer', link: 'https://www.khoslaonline.com', source: 'khosla', platform: 'Khosla Online' },
+                { name: 'Bajaj GX-1 Mixer Grinder 500W', brand: 'Bajaj', model: 'GX-1', price: 1899, mrp: 2799, image: 'https://via.placeholder.com/300x300?text=Bajaj+Mixer', link: 'https://www.flipkart.com', source: 'flipkart', platform: 'Flipkart' },
+                { name: 'Philips HL7756/00 Mixer Grinder', brand: 'Philips', model: 'HL7756/00', price: 3499, mrp: 4995, image: 'https://via.placeholder.com/300x300?text=Philips+Mixer', link: 'https://www.amazon.in', source: 'amazon', platform: 'Amazon' },
+                // Induction Cooktops
+                { name: 'Prestige Induction Cooktop PIC 6.0 V3', brand: 'Prestige', model: 'PIC 6.0 V3', price: 2499, mrp: 3495, image: 'https://via.placeholder.com/300x300?text=Prestige+Induction', link: 'https://www.khoslaonline.com', source: 'khosla', platform: 'Khosla Online' },
+                { name: 'Philips HD4928/01 Induction Cooktop', brand: 'Philips', model: 'HD4928/01', price: 3299, mrp: 4495, image: 'https://via.placeholder.com/300x300?text=Philips+Induction', link: 'https://www.flipkart.com', source: 'flipkart', platform: 'Flipkart' },
+                { name: 'Pigeon by Stovekraft Favourite Induction Cooktop', brand: 'Pigeon', model: 'Favourite', price: 1299, mrp: 1999, image: 'https://via.placeholder.com/300x300?text=Pigeon+Induction', link: 'https://www.amazon.in', source: 'amazon', platform: 'Amazon' },
+                // Water Heaters
+                { name: 'Bajaj New Shakti 15L Storage Water Heater', brand: 'Bajaj', model: 'New Shakti 15L', price: 5499, mrp: 7499, image: 'https://via.placeholder.com/300x300?text=Bajaj+Geyser', link: 'https://www.khoslaonline.com', source: 'khosla', platform: 'Khosla Online' },
+                { name: 'AO Smith HSE-SHS-015 Storage Water Heater', brand: 'AO Smith', model: 'HSE-SHS-015', price: 8499, mrp: 11999, image: 'https://via.placeholder.com/300x300?text=AOSmith+Geyser', link: 'https://www.flipkart.com', source: 'flipkart', platform: 'Flipkart' },
+                { name: 'Racold Eterno Pro 25L Water Heater', brand: 'Racold', model: 'Eterno Pro 25L', price: 9999, mrp: 13999, image: 'https://via.placeholder.com/300x300?text=Racold+Geyser', link: 'https://www.amazon.in', source: 'amazon', platform: 'Amazon' },
+                // Ceiling Fans
+                { name: 'Crompton Aura 48-inch Ceiling Fan', brand: 'Crompton', model: 'Aura 48\"', price: 2499, mrp: 3499, image: 'https://via.placeholder.com/300x300?text=Crompton+Fan', link: 'https://www.khoslaonline.com', source: 'khosla', platform: 'Khosla Online' },
+                { name: 'Havells Leganza 1200mm Ceiling Fan', brand: 'Havells', model: 'Leganza 1200mm', price: 3299, mrp: 4599, image: 'https://via.placeholder.com/300x300?text=Havells+Fan', link: 'https://www.flipkart.com', source: 'flipkart', platform: 'Flipkart' },
+                { name: 'Orient Electric Aeroquiet Ceiling Fan', brand: 'Orient', model: 'Aeroquiet', price: 2899, mrp: 3999, image: 'https://via.placeholder.com/300x300?text=Orient+Fan', link: 'https://www.amazon.in', source: 'amazon', platform: 'Amazon' },
+                // Iron Press
+                { name: 'Philips GC1905 Steam Iron', brand: 'Philips', model: 'GC1905', price: 1499, mrp: 2195, image: 'https://via.placeholder.com/300x300?text=Philips+Iron', link: 'https://www.khoslaonline.com', source: 'khosla', platform: 'Khosla Online' },
+                { name: 'Bajaj MX-35N Steam Iron', brand: 'Bajaj', model: 'MX-35N', price: 899, mrp: 1299, image: 'https://via.placeholder.com/300x300?text=Bajaj+Iron', link: 'https://www.flipkart.com', source: 'flipkart', platform: 'Flipkart' },
+                { name: 'Usha EI 3302 Gold Dry Iron', brand: 'Usha', model: 'EI 3302 Gold', price: 649, mrp: 995, image: 'https://via.placeholder.com/300x300?text=Usha+Iron', link: 'https://www.amazon.in', source: 'amazon', platform: 'Amazon' },
+                // Toasters
+                { name: 'Philips HD2582/00 Pop-up Toaster', brand: 'Philips', model: 'HD2582/00', price: 1799, mrp: 2495, image: 'https://via.placeholder.com/300x300?text=Philips+Toaster', link: 'https://www.khoslaonline.com', source: 'khosla', platform: 'Khosla Online' },
+                { name: 'Morphy Richards AT-201 Pop-up Toaster', brand: 'Morphy Richards', model: 'AT-201', price: 2199, mrp: 2999, image: 'https://via.placeholder.com/300x300?text=Morphy+Toaster', link: 'https://www.flipkart.com', source: 'flipkart', platform: 'Flipkart' },
+                { name: 'Bajaj Majesty ATX 4 Pop-up Toaster', brand: 'Bajaj', model: 'Majesty ATX 4', price: 1299, mrp: 1899, image: 'https://via.placeholder.com/300x300?text=Bajaj+Toaster', link: 'https://www.amazon.in', source: 'amazon', platform: 'Amazon' },
+                // Electric Kettles
+                { name: 'Prestige PKOSS Electric Kettle 1.5L', brand: 'Prestige', model: 'PKOSS 1.5L', price: 899, mrp: 1299, image: 'https://via.placeholder.com/300x300?text=Prestige+Kettle', link: 'https://www.khoslaonline.com', source: 'khosla', platform: 'Khosla Online' },
+                { name: 'Philips HD9306/06 Electric Kettle', brand: 'Philips', model: 'HD9306/06', price: 1499, mrp: 2195, image: 'https://via.placeholder.com/300x300?text=Philips+Kettle', link: 'https://www.flipkart.com', source: 'flipkart', platform: 'Flipkart' },
+                { name: 'Havells Aqua Plus Electric Kettle', brand: 'Havells', model: 'Aqua Plus', price: 1199, mrp: 1699, image: 'https://via.placeholder.com/300x300?text=Havells+Kettle', link: 'https://www.amazon.in', source: 'amazon', platform: 'Amazon' },
+                // Rice Cookers
+                { name: 'Prestige Delight PRWO 1.8-2 Electric Rice Cooker', brand: 'Prestige', model: 'PRWO 1.8-2', price: 2499, mrp: 3495, image: 'https://via.placeholder.com/300x300?text=Prestige+RiceCooker', link: 'https://www.khoslaonline.com', source: 'khosla', platform: 'Khosla Online' },
+                { name: 'Panasonic SR-WA18H(E) Automatic Rice Cooker', brand: 'Panasonic', model: 'SR-WA18H(E)', price: 2999, mrp: 4199, image: 'https://via.placeholder.com/300x300?text=Panasonic+RiceCooker', link: 'https://www.flipkart.com', source: 'flipkart', platform: 'Flipkart' },
+                { name: 'Butterfly Wave Electric Rice Cooker 1.8L', brand: 'Butterfly', model: 'Wave 1.8L', price: 1899, mrp: 2699, image: 'https://via.placeholder.com/300x300?text=Butterfly+RiceCooker', link: 'https://www.amazon.in', source: 'amazon', platform: 'Amazon' }
             ];
 
             // Filter sample products based on search term
@@ -85,25 +60,23 @@ router.get('/search-online', requireMasterAdmin, async (req, res) => {
                 p.model.toLowerCase().includes(searchTerm)
             );
 
-            if (filtered.length > 0) {
-                // Distribute across platforms
-                filtered.forEach((p, i) => {
-                    if (i % 3 === 0) results.khosla.push(p);
-                    else if (i % 3 === 1) results.flipkart.push({...p, source: 'flipkart', platform: 'Flipkart'});
-                    else results.amazon.push({...p, source: 'amazon', platform: 'Amazon'});
-                });
-            } else {
-                // If no matches, show all sample products
-                sampleProducts.forEach((p, i) => {
-                    if (i % 3 === 0) results.khosla.push(p);
-                    else if (i % 3 === 1) results.flipkart.push({...p, source: 'flipkart', platform: 'Flipkart'});
-                    else results.amazon.push({...p, source: 'amazon', platform: 'Amazon'});
-                });
-            }
+            const productsToShow = filtered.length > 0 ? filtered : sampleProducts;
+
+            // Distribute across platforms based on original source
+            productsToShow.forEach(p => {
+                if (platform === 'all' || platform === p.source) {
+                    results[p.source].push(p);
+                }
+            });
         }
 
-        // Get categories - FIX: Use DISTINCT to prevent duplicates
-        const [categories] = await db.execute('SELECT DISTINCT id, name FROM categories ORDER BY name');
+        // FIX: Use DISTINCT and filter NULL/empty to prevent duplicate categories
+        const [categories] = await db.execute(
+            `SELECT DISTINCT id, name 
+             FROM categories 
+             WHERE name IS NOT NULL AND name != '' 
+             ORDER BY name`
+        );
 
         res.render('products/search-online', {
             title: 'Search Products Online',

@@ -87,14 +87,132 @@
     <p class="mt-3 text-muted">Searching across platforms... This may take 10-30 seconds</p>
 </div>
 
-<!-- Results -->
+<!-- FIX: Search Results Section -->
 <% if (query) { %>
-    <div class="alert alert-info">
-        <i class="fas fa-info-circle me-2"></i>
-        <strong>Online Search Feature:</strong> Web scraping for Khosla, Flipkart, and Amazon requires additional setup with Puppeteer/Cheerio.
-        <br>For now, you can use the <strong>Import Product</strong> form below to manually add products with duplicate checking.
+    <% 
+    const totalResults = results.khosla.length + results.flipkart.length + results.amazon.length;
+    %>
+
+    <% if (totalResults > 0) { %>
+    <!-- Results Found -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0"><i class="fas fa-search-results me-2"></i>Search Results for "<%= query %>"</h5>
+        <span class="badge bg-primary"><%= totalResults %> products found</span>
     </div>
 
+    <!-- Khosla Results -->
+    <% if (results.khosla.length > 0 && (platform === 'all' || platform === 'khosla')) { %>
+    <div class="card mb-4 border-primary">
+        <div class="card-header bg-primary text-white">
+            <i class="fas fa-store me-2"></i>Khosla Online <span class="badge bg-light text-primary ms-2"><%= results.khosla.length %></span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <% results.khosla.forEach(product => { %>
+                <div class="col-md-4 col-lg-3 mb-3">
+                    <div class="card h-100 product-card">
+                        <img src="<%= product.image %>" class="card-img-top" alt="<%= product.name %>" style="height: 180px; object-fit: cover;">
+                        <div class="card-body">
+                            <h6 class="card-title" style="font-size: 14px;"><%= product.name %></h6>
+                            <p class="text-muted mb-1" style="font-size: 12px;"><%= product.brand %> <%= product.model %></p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="fw-bold text-primary">₹<%= product.price.toLocaleString('en-IN') %></span>
+                                    <small class="text-muted text-decoration-line-through ms-1">₹<%= product.mrp.toLocaleString('en-IN') %></small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <button class="btn btn-sm btn-success w-100" onclick="fillImportForm('<%= product.name.replace(/'/g, "\\'") %>', '<%= product.brand %>', '<%= product.model %>', <%= product.price %>, <%= product.mrp %>)" style="font-size: 12px;">
+                                <i class="fas fa-download me-1"></i>Import
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <% }) %>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <!-- Flipkart Results -->
+    <% if (results.flipkart.length > 0 && (platform === 'all' || platform === 'flipkart')) { %>
+    <div class="card mb-4 border-warning">
+        <div class="card-header bg-warning text-dark">
+            <i class="fas fa-shopping-bag me-2"></i>Flipkart <span class="badge bg-light text-warning ms-2"><%= results.flipkart.length %></span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <% results.flipkart.forEach(product => { %>
+                <div class="col-md-4 col-lg-3 mb-3">
+                    <div class="card h-100 product-card">
+                        <img src="<%= product.image %>" class="card-img-top" alt="<%= product.name %>" style="height: 180px; object-fit: cover;">
+                        <div class="card-body">
+                            <h6 class="card-title" style="font-size: 14px;"><%= product.name %></h6>
+                            <p class="text-muted mb-1" style="font-size: 12px;"><%= product.brand %> <%= product.model %></p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="fw-bold text-primary">₹<%= product.price.toLocaleString('en-IN') %></span>
+                                    <small class="text-muted text-decoration-line-through ms-1">₹<%= product.mrp.toLocaleString('en-IN') %></small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <button class="btn btn-sm btn-success w-100" onclick="fillImportForm('<%= product.name.replace(/'/g, "\\'") %>', '<%= product.brand %>', '<%= product.model %>', <%= product.price %>, <%= product.mrp %>)" style="font-size: 12px;">
+                                <i class="fas fa-download me-1"></i>Import
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <% }) %>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <!-- Amazon Results -->
+    <% if (results.amazon.length > 0 && (platform === 'all' || platform === 'amazon')) { %>
+    <div class="card mb-4 border-info">
+        <div class="card-header bg-info text-white">
+            <i class="fab fa-amazon me-2"></i>Amazon India <span class="badge bg-light text-info ms-2"><%= results.amazon.length %></span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <% results.amazon.forEach(product => { %>
+                <div class="col-md-4 col-lg-3 mb-3">
+                    <div class="card h-100 product-card">
+                        <img src="<%= product.image %>" class="card-img-top" alt="<%= product.name %>" style="height: 180px; object-fit: cover;">
+                        <div class="card-body">
+                            <h6 class="card-title" style="font-size: 14px;"><%= product.name %></h6>
+                            <p class="text-muted mb-1" style="font-size: 12px;"><%= product.brand %> <%= product.model %></p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="fw-bold text-primary">₹<%= product.price.toLocaleString('en-IN') %></span>
+                                    <small class="text-muted text-decoration-line-through ms-1">₹<%= product.mrp.toLocaleString('en-IN') %></small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <button class="btn btn-sm btn-success w-100" onclick="fillImportForm('<%= product.name.replace(/'/g, "\\'") %>', '<%= product.brand %>', '<%= product.model %>', <%= product.price %>, <%= product.mrp %>)" style="font-size: 12px;">
+                                <i class="fas fa-download me-1"></i>Import
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <% }) %>
+            </div>
+        </div>
+    </div>
+    <% } %>
+    <% } else { %>
+    <!-- No Results -->
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        No products found for "<%= query %>". Try a different search term or use the manual import form below.
+    </div>
+    <% } %>
+
+    <!-- Manual Import Form -->
     <div class="card">
         <div class="card-header bg-success text-white">
             <h5 class="mb-0"><i class="fas fa-download me-2"></i>Import Product Manually</h5>
@@ -141,9 +259,17 @@
                         <label class="form-label">Category</label>
                         <select name="category_id" id="import-category" class="form-select">
                             <option value="">Select Category</option>
-                            <% categories.forEach(cat => { %>
+                            <% 
+                            const seenCats = new Set();
+                            categories.forEach(cat => {
+                                if (cat.name && !seenCats.has(cat.name)) {
+                                    seenCats.add(cat.name);
+                            %>
                             <option value="<%= cat.id %>"><%= cat.name %></option>
-                            <% }) %>
+                            <% 
+                                }
+                            }); 
+                            %>
                         </select>
                     </div>
                     <div class="col-md-4 mb-3">
@@ -271,6 +397,21 @@
         document.getElementById('loading-indicator').style.display = 'block';
     });
 
+    // FIX: Fill import form from search result card
+    function fillImportForm(name, brand, model, price, mrp) {
+        document.getElementById('import-name').value = name;
+        document.getElementById('import-brand').value = brand;
+        document.getElementById('import-model').value = model;
+        document.getElementById('import-selling-price').value = price;
+        document.getElementById('import-mrp').value = mrp;
+        // Auto-calculate purchase price as 70% of selling price
+        document.getElementById('import-purchase-price').value = Math.round(price * 0.7);
+
+        // Scroll to import form
+        document.getElementById('import-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showToast('Product details filled. Adjust prices and click Import.', 'info');
+    }
+
     // Import product function
     function importProduct() {
         const form = document.getElementById('import-form');
@@ -311,7 +452,7 @@
                 alert.style.display = 'block';
                 alert.className = 'alert alert-warning';
                 document.getElementById('duplicate-message').innerHTML = 
-                    result.message + ' <a href="/products/' + result.productId + '/edit" class="alert-link">Edit Product</a>';
+                    result.message + ' <a href="/products/edit/' + result.productId + '" class="alert-link">Edit Product</a>';
             } else {
                 showToast(result.message, 'danger');
             }
@@ -333,14 +474,14 @@
 
         fetch('/products/check-duplicate?barcode=' + encodeURIComponent(barcode))
             .then(res => res.json())
-            .then(data => {
+            data => {
                 const alert = document.getElementById('duplicate-alert');
                 if (data.exists) {
                     alert.style.display = 'block';
                     alert.className = 'alert alert-warning';
                     document.getElementById('duplicate-message').innerHTML = 
                         'Product with barcode "' + barcode + '" already exists: ' + data.product.name + 
-                        ' <a href="/products/' + data.product.id + '/edit" class="alert-link">Edit</a>';
+                        ' <a href="/products/edit/' + data.product.id + '" class="alert-link">Edit</a>';
                 } else {
                     alert.style.display = 'none';
                 }
