@@ -50,7 +50,11 @@ router.get('/search-online', requireMasterAdmin, async (req, res) => {
                 // Rice Cookers
                 { name: 'Prestige Delight PRWO 1.8-2 Electric Rice Cooker', brand: 'Prestige', model: 'PRWO 1.8-2', price: 2499, mrp: 3495, image: 'https://via.placeholder.com/300x300?text=Prestige+RiceCooker', link: 'https://www.khoslaonline.com', source: 'khosla', platform: 'Khosla Online' },
                 { name: 'Panasonic SR-WA18H(E) Automatic Rice Cooker', brand: 'Panasonic', model: 'SR-WA18H(E)', price: 2999, mrp: 4199, image: 'https://via.placeholder.com/300x300?text=Panasonic+RiceCooker', link: 'https://www.flipkart.com', source: 'flipkart', platform: 'Flipkart' },
-                { name: 'Butterfly Wave Electric Rice Cooker 1.8L', brand: 'Butterfly', model: 'Wave 1.8L', price: 1899, mrp: 2699, image: 'https://via.placeholder.com/300x300?text=Butterfly+RiceCooker', link: 'https://www.amazon.in', source: 'amazon', platform: 'Amazon' }
+                { name: 'Butterfly Wave Electric Rice Cooker 1.8L', brand: 'Butterfly', model: 'Wave 1.8L', price: 1899, mrp: 2699, image: 'https://via.placeholder.com/300x300?text=Butterfly+RiceCooker', link: 'https://www.amazon.in', source: 'amazon', platform: 'Amazon' },
+                // Mobile Phones
+                { name: 'Samsung Galaxy M34 5G (6GB RAM, 128GB)', brand: 'Samsung', model: 'Galaxy M34', price: 15499, mrp: 22999, image: 'https://via.placeholder.com/300x300?text=Samsung+M34', link: 'https://www.khoslaonline.com', source: 'khosla', platform: 'Khosla Online' },
+                { name: 'Redmi 12 5G (4GB RAM, 128GB)', brand: 'Redmi', model: '12 5G', price: 11999, mrp: 15999, image: 'https://via.placeholder.com/300x300?text=Redmi+12', link: 'https://www.flipkart.com', source: 'flipkart', platform: 'Flipkart' },
+                { name: 'Realme Narzo 60X 5G (4GB RAM, 128GB)', brand: 'Realme', model: 'Narzo 60X', price: 12499, mrp: 16999, image: 'https://via.placeholder.com/300x300?text=Realme+Narzo', link: 'https://www.amazon.in', source: 'amazon', platform: 'Amazon' }
             ];
 
             // Filter sample products based on search term
@@ -60,10 +64,9 @@ router.get('/search-online', requireMasterAdmin, async (req, res) => {
                 p.model.toLowerCase().includes(searchTerm)
             );
 
-            const productsToShow = filtered.length > 0 ? filtered : sampleProducts;
-
-            // Distribute across platforms based on original source
-            productsToShow.forEach(p => {
+            // FIX: Only show matching products. If no match, show nothing (not all products).
+            // The manual import form below handles the "add anyway" case.
+            filtered.forEach(p => {
                 if (platform === 'all' || platform === p.source) {
                     results[p.source].push(p);
                 }
