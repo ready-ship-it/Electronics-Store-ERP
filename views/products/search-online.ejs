@@ -96,7 +96,7 @@
     <% if (totalResults > 0) { %>
     <!-- Results Found -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0"><i class="fas fa-search-results me-2"></i>Search Results for "<%= query %>"</h5>
+        <h5 class="mb-0"><i class="fas fa-search me-2"></i>Search Results for "<%= query %>"</h5>
         <span class="badge bg-primary"><%= totalResults %> products found</span>
     </div>
 
@@ -123,7 +123,13 @@
                             </div>
                         </div>
                         <div class="card-footer bg-transparent">
-                            <button class="btn btn-sm btn-success w-100" onclick="fillImportForm('<%= product.name.replace(/'/g, "\\'") %>', '<%= product.brand %>', '<%= product.model %>', <%= product.price %>, <%= product.mrp %>)" style="font-size: 12px;">
+                            <button type="button" class="btn btn-sm btn-success w-100 import-btn" 
+                                    data-name="<%= product.name.replace(/"/g, '&quot;') %>"
+                                    data-brand="<%= (product.brand || '').replace(/"/g, '&quot;') %>"
+                                    data-model="<%= (product.model || '').replace(/"/g, '&quot;') %>"
+                                    data-price="<%= product.price %>"
+                                    data-mrp="<%= product.mrp %>"
+                                    style="font-size: 12px;">
                                 <i class="fas fa-download me-1"></i>Import
                             </button>
                         </div>
@@ -158,7 +164,13 @@
                             </div>
                         </div>
                         <div class="card-footer bg-transparent">
-                            <button class="btn btn-sm btn-success w-100" onclick="fillImportForm('<%= product.name.replace(/'/g, "\\'") %>', '<%= product.brand %>', '<%= product.model %>', <%= product.price %>, <%= product.mrp %>)" style="font-size: 12px;">
+                            <button type="button" class="btn btn-sm btn-success w-100 import-btn" 
+                                    data-name="<%= product.name.replace(/"/g, '&quot;') %>"
+                                    data-brand="<%= (product.brand || '').replace(/"/g, '&quot;') %>"
+                                    data-model="<%= (product.model || '').replace(/"/g, '&quot;') %>"
+                                    data-price="<%= product.price %>"
+                                    data-mrp="<%= product.mrp %>"
+                                    style="font-size: 12px;">
                                 <i class="fas fa-download me-1"></i>Import
                             </button>
                         </div>
@@ -193,7 +205,13 @@
                             </div>
                         </div>
                         <div class="card-footer bg-transparent">
-                            <button class="btn btn-sm btn-success w-100" onclick="fillImportForm('<%= product.name.replace(/'/g, "\\'") %>', '<%= product.brand %>', '<%= product.model %>', <%= product.price %>, <%= product.mrp %>)" style="font-size: 12px;">
+                            <button type="button" class="btn btn-sm btn-success w-100 import-btn" 
+                                    data-name="<%= product.name.replace(/"/g, '&quot;') %>"
+                                    data-brand="<%= (product.brand || '').replace(/"/g, '&quot;') %>"
+                                    data-model="<%= (product.model || '').replace(/"/g, '&quot;') %>"
+                                    data-price="<%= product.price %>"
+                                    data-mrp="<%= product.mrp %>"
+                                    style="font-size: 12px;">
                                 <i class="fas fa-download me-1"></i>Import
                             </button>
                         </div>
@@ -397,20 +415,27 @@
         document.getElementById('loading-indicator').style.display = 'block';
     });
 
-    // FIX: Fill import form from search result card
-    function fillImportForm(name, brand, model, price, mrp) {
+    // FIX: Import button click handler using event delegation (data attributes)
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.import-btn');
+        if (!btn) return;
+
+        const name = btn.dataset.name;
+        const brand = btn.dataset.brand;
+        const model = btn.dataset.model;
+        const price = parseFloat(btn.dataset.price) || 0;
+        const mrp = parseFloat(btn.dataset.mrp) || 0;
+
         document.getElementById('import-name').value = name;
         document.getElementById('import-brand').value = brand;
         document.getElementById('import-model').value = model;
         document.getElementById('import-selling-price').value = price;
         document.getElementById('import-mrp').value = mrp;
-        // Auto-calculate purchase price as 70% of selling price
         document.getElementById('import-purchase-price').value = Math.round(price * 0.7);
 
-        // Scroll to import form
         document.getElementById('import-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
         showToast('Product details filled. Adjust prices and click Import.', 'info');
-    }
+    });
 
     // Import product function
     function importProduct() {
@@ -440,11 +465,9 @@
         .then(result => {
             if (result.success) {
                 showToast('Product imported! SKU: ' + result.sku, 'success');
-                // Reset form
                 form.reset();
                 document.getElementById('import-name').value = '';
                 document.getElementById('duplicate-alert').style.display = 'none';
-                // Reload stats
                 loadStats();
             } else if (result.duplicate) {
                 showToast('Duplicate: ' + result.message, 'warning');
@@ -474,7 +497,7 @@
 
         fetch('/products/check-duplicate?barcode=' + encodeURIComponent(barcode))
             .then(res => res.json())
-            data => {
+            .then(data => {
                 const alert = document.getElementById('duplicate-alert');
                 if (data.exists) {
                     alert.style.display = 'block';
