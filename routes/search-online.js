@@ -263,4 +263,58 @@ async function generateSKU(brand, name, connection) {
     return sku;
 }
 
+
+/**
+ * POST /products/add-category
+ * Master Admin only - Add a new category on the fly
+ */
+router.post('/add-category', requireMasterAdmin, async (req, res) => {
+    try {
+        const { name } = req.body;
+
+        if (!name || name.trim() === '') {
+            return res.status(400).json({
+                success: false,
+                message: 'Category name is required'
+            });
+        }
+
+        const trimmedName = name.trim();
+
+        // Check if category already exists
+        const [existing] = await db.execute(
+            'SELECT id FROM categories WHERE name = ?',
+            [trimmedName]
+        );
+
+        if (existing.length > 0) {
+            return res.json({
+                success: true,
+                message: 'Category already exists',
+                categoryId: existing[0].id,
+                categoryName: trimmedName
+            });
+        }
+
+        // Insert new category
+        const [result] = await db.execute(
+            'INSERT INTO categories (name, created_at) VALUES (?, NOW())',
+            [trimmedName]
+        );
+
+        res.json({
+            success: true,
+            message: 'Category added successfully',
+            categoryId: result.insertId,
+            categoryName: trimmedName
+        });
+    } catch (error) {
+        console.error('Add category error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error adding category: ' + error.message
+        });
+    }
+});
+
 module.exports = router;
