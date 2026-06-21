@@ -160,6 +160,26 @@ router.post('/add', async (req, res) => {
 
         const toNull = (val) => (val === undefined || val === '') ? null : val;
 
+        // FIX: Handle specifications - if empty/invalid JSON, store null or '{}'
+        const cleanSpecs = (specs) => {
+            if (!specs || specs === '' || specs === 'null') return null;
+            if (typeof specs === 'string') {
+                // Check if it's valid JSON
+                try {
+                    JSON.parse(specs);
+                    return specs;
+                } catch (e) {
+                    // Not valid JSON, try to stringify if it's an object
+                    if (specs.trim() === '' || specs === '[object Object]') return null;
+                    return JSON.stringify({ raw: specs });
+                }
+            }
+            if (typeof specs === 'object') {
+                return JSON.stringify(specs);
+            }
+            return null;
+        };
+
         const [result] = await db.execute(
             `INSERT INTO products 
              (name, sku, barcode, brand, model, category_id, description,
@@ -171,7 +191,7 @@ router.post('/add', async (req, res) => {
                 toNull(category_id), toNull(description),
                 toNull(hsn_code), toNull(gst_rate) || 18, toNull(unit) || 'piece',
                 toNull(purchase_price), toNull(selling_price), toNull(mrp) || toNull(selling_price),
-                toNull(quantity) || 0, toNull(min_stock) || 5, toNull(specifications)
+                toNull(quantity) || 0, toNull(min_stock) || 5, cleanSpecs(specifications)
             ]
         );
 
@@ -226,6 +246,26 @@ router.post('/edit/:id', async (req, res) => {
         // FIX: Convert undefined to null for MySQL binding
         const toNull = (val) => (val === undefined || val === '') ? null : val;
 
+        // FIX: Handle specifications - if empty/invalid JSON, store null or '{}'
+        const cleanSpecs = (specs) => {
+            if (!specs || specs === '' || specs === 'null') return null;
+            if (typeof specs === 'string') {
+                // Check if it's valid JSON
+                try {
+                    JSON.parse(specs);
+                    return specs;
+                } catch (e) {
+                    // Not valid JSON, try to stringify if it's an object
+                    if (specs.trim() === '' || specs === '[object Object]') return null;
+                    return JSON.stringify({ raw: specs });
+                }
+            }
+            if (typeof specs === 'object') {
+                return JSON.stringify(specs);
+            }
+            return null;
+        };
+
         await db.execute(
             `UPDATE products SET
              name = ?, sku = ?, barcode = ?, brand = ?, model = ?,
@@ -237,7 +277,7 @@ router.post('/edit/:id', async (req, res) => {
                 toNull(name), toNull(sku), toNull(barcode), toNull(brand), toNull(model), 
                 toNull(category_id), toNull(description), toNull(hsn_code), toNull(gst_rate),
                 toNull(unit), toNull(purchase_price), toNull(selling_price), toNull(mrp),
-                toNull(quantity), toNull(min_stock), toNull(specifications), id
+                toNull(quantity), toNull(min_stock), cleanSpecs(specifications), id
             ]
         );
 
