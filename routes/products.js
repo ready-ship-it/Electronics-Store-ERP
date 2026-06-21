@@ -158,6 +158,8 @@ router.post('/add', async (req, res) => {
             quantity, min_stock, specifications
         } = req.body;
 
+        const toNull = (val) => val === undefined ? null : val;
+
         const [result] = await db.execute(
             `INSERT INTO products 
              (name, sku, barcode, brand, model, category_id, description,
@@ -165,10 +167,11 @@ router.post('/add', async (req, res) => {
               quantity, min_stock, specifications, is_active, created_at, updated_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, NOW(), NOW())`,
             [
-                name, sku, barcode, brand, model, category_id, description,
-                hsn_code, gst_rate || 18, unit || 'piece',
-                purchase_price, selling_price, mrp || selling_price,
-                quantity || 0, min_stock || 5, specifications
+                toNull(name), toNull(sku), toNull(barcode), toNull(brand), toNull(model), 
+                toNull(category_id), toNull(description),
+                toNull(hsn_code), toNull(gst_rate) || 18, toNull(unit) || 'piece',
+                toNull(purchase_price), toNull(selling_price), toNull(mrp) || toNull(selling_price),
+                toNull(quantity) || 0, toNull(min_stock) || 5, toNull(specifications)
             ]
         );
 
@@ -210,7 +213,7 @@ router.get('/edit/:id', async (req, res) => {
 });
 
 // Update product
-router.post('/edit/:id', async (req, res) => {
+router.put('/edit/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const {
@@ -257,30 +260,6 @@ router.delete('/delete/:id', requireRole(['master_admin']), async (req, res) => 
         console.error('Delete product error:', error);
         req.flash('error', 'Error deleting product');
         res.redirect('/products');
-    }
-});
-
-// Add category (AJAX endpoint for edit/add pages)
-router.post('/add-category', async (req, res) => {
-    try {
-        const { name } = req.body;
-        if (!name || name.trim() === '') {
-            return res.status(400).json({ success: false, message: 'Category name is required' });
-        }
-        const trimmedName = name.trim();
-
-        // Check if exists
-        const [existing] = await db.execute('SELECT id, name FROM categories WHERE name = ?', [trimmedName]);
-        if (existing.length > 0) {
-            return res.json({ success: true, message: 'Category already exists', categoryId: existing[0].id, categoryName: existing[0].name });
-        }
-
-        // Insert
-        const [result] = await db.execute('INSERT INTO categories (name, created_at) VALUES (?, NOW())', [trimmedName]);
-        res.json({ success: true, message: 'Category added', categoryId: result.insertId, categoryName: trimmedName });
-    } catch (error) {
-        console.error('Add category error:', error);
-        res.status(500).json({ success: false, message: error.message });
     }
 });
 
