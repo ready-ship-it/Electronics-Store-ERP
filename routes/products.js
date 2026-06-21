@@ -158,7 +158,7 @@ router.post('/add', async (req, res) => {
             quantity, min_stock, specifications
         } = req.body;
 
-        const toNull = (val) => val === undefined ? null : val;
+        const toNull = (val) => (val === undefined || val === '') ? null : val;
 
         const [result] = await db.execute(
             `INSERT INTO products 
@@ -224,7 +224,7 @@ router.post('/edit/:id', async (req, res) => {
         } = req.body;
 
         // FIX: Convert undefined to null for MySQL binding
-        const toNull = (val) => val === undefined ? null : val;
+        const toNull = (val) => (val === undefined || val === '') ? null : val;
 
         await db.execute(
             `UPDATE products SET
