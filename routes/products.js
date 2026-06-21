@@ -35,7 +35,7 @@ router.get('/', async (req, res) => {
 
         const [products] = await db.execute(query, params);
         // FIX: Use DISTINCT to prevent duplicate categories
-        const [categories] = await db.execute('SELECT DISTINCT id, name FROM categories ORDER BY name');
+        const [categories] = await db.execute("SELECT MIN(id) as id, name FROM categories WHERE name IS NOT NULL AND name != '' GROUP BY name ORDER BY name");
 
         res.render('products/list', {
             title: 'Products',
@@ -135,7 +135,7 @@ router.post('/barcode-search', async (req, res) => {
 // Add product page
 router.get('/add', async (req, res) => {
     try {
-        const [categories] = await db.execute('SELECT DISTINCT id, name FROM categories ORDER BY name');
+        const [categories] = await db.execute("SELECT MIN(id) as id, name FROM categories WHERE name IS NOT NULL AND name != '' GROUP BY name ORDER BY name");
         res.render('products/add', {
             title: 'Add Product',
             categories,
@@ -198,7 +198,7 @@ router.get('/edit/:id', async (req, res) => {
             return res.redirect('/products');
         }
 
-        const [categories] = await db.execute('SELECT DISTINCT id, name FROM categories ORDER BY name');
+        const [categories] = await db.execute("SELECT MIN(id) as id, name FROM categories WHERE name IS NOT NULL AND name != '' GROUP BY name ORDER BY name");
         res.render('products/edit', {
             title: 'Edit Product',
             product: products[0],
@@ -213,7 +213,7 @@ router.get('/edit/:id', async (req, res) => {
 });
 
 // Update product
-router.put('/edit/:id', async (req, res) => {
+router.post('/edit/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const {
@@ -223,6 +223,9 @@ router.put('/edit/:id', async (req, res) => {
             quantity, min_stock, specifications
         } = req.body;
 
+        // FIX: Convert undefined to null for MySQL binding
+        const toNull = (val) => val === undefined ? null : val;
+
         await db.execute(
             `UPDATE products SET
              name = ?, sku = ?, barcode = ?, brand = ?, model = ?,
@@ -231,9 +234,10 @@ router.put('/edit/:id', async (req, res) => {
              quantity = ?, min_stock = ?, specifications = ?, updated_at = NOW()
              WHERE id = ?`,
             [
-                name, sku, barcode, brand, model, category_id, description,
-                hsn_code, gst_rate, unit, purchase_price, selling_price, mrp,
-                quantity, min_stock, specifications, id
+                toNull(name), toNull(sku), toNull(barcode), toNull(brand), toNull(model), 
+                toNull(category_id), toNull(description), toNull(hsn_code), toNull(gst_rate),
+                toNull(unit), toNull(purchase_price), toNull(selling_price), toNull(mrp),
+                toNull(quantity), toNull(min_stock), toNull(specifications), id
             ]
         );
 
@@ -260,6 +264,67 @@ router.delete('/delete/:id', requireRole(['master_admin']), async (req, res) => 
         console.error('Delete product error:', error);
         req.flash('error', 'Error deleting product');
         res.redirect('/products');
+    }
+});
+
+// Product detail page
+router.get('/detail/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [products] = await db.execute(
+            `SELECT p.*, c.name as category_name 
+             FROM products p 
+             LEFT JOIN categories c ON p.category_id = c.id 
+             WHERE p.id = ? AND p.is_active = TRUE`,
+            [id]
+        );
+
+        if (products.length === 0) {
+            req.flash('error', 'Product not found');
+            return res.redirect('/products');
+        }
+
+        let stockHistory = [];
+        try {
+            const [history] = await db.execute(
+                'SELECT * FROM stock_history WHERE product_id = ? ORDER BY created_at DESC LIMIT 10',
+                [id]
+            );
+            stockHistory = history;
+        } catch (e) {}
+
+        res.render('products/detail', {
+            title: products[0].name,
+            product: products[0],
+            stockHistory,
+            user: req.user
+        });
+    } catch (error) {
+        console.error('Product detail error:', error);
+        req.flash('error', 'Error loading product details');
+        res.redirect('/products');
+    }
+});
+
+// Add category (AJAX endpoint for edit/add pages)
+router.post('/add-category', async (req, res) => {
+    try {
+        const { name } = req.body;
+        if (!name || name.trim() === '') {
+            return res.status(400).json({ success: false, message: 'Category name is required' });
+        }
+        const trimmedName = name.trim();
+
+        const [existing] = await db.execute('SELECT id, name FROM categories WHERE name = ?', [trimmedName]);
+        if (existing.length > 0) {
+            return res.json({ success: true, message: 'Category already exists', categoryId: existing[0].id, categoryName: existing[0].name });
+        }
+
+        const [result] = await db.execute('INSERT INTO categories (name, created_at) VALUES (?, NOW())', [trimmedName]);
+        res.json({ success: true, message: 'Category added', categoryId: result.insertId, categoryName: trimmedName });
+    } catch (error) {
+        console.error('Add category error:', error);
+        res.status(500).json({ success: false, message: error.message });
     }
 });
 
